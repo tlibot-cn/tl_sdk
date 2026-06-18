@@ -1,5 +1,5 @@
 /**
- * test_error_callback.cpp
+ * test_error_callback_api.cpp
  * @brief 错误/警告回调示例程序
  * @attention
  *   - 确保控制器网络通信正常

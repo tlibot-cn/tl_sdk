@@ -1,5 +1,5 @@
 /**
- * test_servoj.cpp
+ * test_servoj_api.cpp
  * @brief 关节实时跟踪（servoJ）示例程序
  * @attention
  *   - 确保机械臂供电正常、网络通信正常

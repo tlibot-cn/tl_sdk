@@ -1,5 +1,5 @@
 /**
- * test_queue_motion.cpp
+ * test_queue_motion_api.cpp
  * @brief 队列运动示例程序 —— 展示队列运动完整工作流
  * @attention
  *   - 确保机械臂供电正常、网络通信正常

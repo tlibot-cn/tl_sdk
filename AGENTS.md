@@ -20,7 +20,7 @@ make
 
 - 自动扫描 `example/` 下所有 `.cpp` 源文件生成可执行文件
 - 自动嵌入 RPATH，运行时无需设置 `LD_LIBRARY_PATH`
-- 直接运行 `./movej`、`./servoj` 等即可
+- 直接运行 `./test_connect_api`、`./test_servo_api` 等即可（可执行文件名对应源文件名，如 `test_servo_api.cpp` 生成 `test_servo_api`）
 
 ### 运行前设置
 
@@ -219,10 +219,10 @@ struct MoveCmd {
 1. **非阻塞运动**: `robot_movej` / `robot_movel` 立即返回，需用 `sleep_for` 等待到位
 2. **队列运动**: 先 `queue_motion_set_status_c(true)` 打开模式，`push_back` 填充，最后 `send_to_controller` 一次性下发
 3. **清错后不能直接上电**: 必须先下电再上电（`clear_error` → `set_servo_poweroff` → `set_servo_state(1)` → `set_servo_poweron`）
-4. **机器人模式**: 0=示教 1=运行 2=远程；不同接口在不同模式下可用
+4. **机器人模式**: 0=示教 1=远程 2=运行；不同接口在不同模式下可用
 5. **伺服状态**: 0=停止 1=就绪 2=报警 3=运行
 6. **运行状态**: 0=停止 1=暂停 2=运行
-7. **坐标系**: 0=关节 1=笛卡尔 2=工具 3=用户 5=大地
+7. **坐标系**: 0=关节 1=直角 2=工具 3=用户
 8. **IP 默认**: `192.168.1.13`
 9. **坐标数据长度**: `get_global_position` 返回 14 位数组 `[0]=坐标系, [1]=单位, [2]=形态, [3]=工具号, [4]=用户坐标, [5-6]=备用, [7-13]=坐标值`
 

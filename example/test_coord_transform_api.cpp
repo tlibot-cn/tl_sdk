@@ -1,5 +1,5 @@
 /**
- * test_coord_transform.cpp
+ * test_coord_transform_api.cpp
  * @brief 坐标变换算法示例程序 —— 展示常用的坐标系转换接口
  * @attention
  *   - 需要控制器连接正常、已上电

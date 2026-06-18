@@ -110,7 +110,7 @@ SDK 使用两个 TCP 端口分工：
 
 ```cpp
 set_servo_state(sock, 1);          // ① 伺服就绪
-sleep_for(milliseconds(500));
+std::this_thread::sleep_for(std::chrono::milliseconds(500));
 set_servo_poweron(sock);           // ② 上电使能
 ```
 
@@ -119,7 +119,7 @@ set_servo_poweron(sock);           // ② 上电使能
 ### 运动控制特点
 
 - **非阻塞**：`robot_movej` / `robot_movel` 发出指令后立即返回，需要通过 `sleep_for` 等待机械臂实际到位
-- **坐标系**：0=关节 1=笛卡尔 2=工具 3=用户 5=大地
+- **坐标系**：0=关节 1=直角 2=工具 3=用户
 - **队列模式**：先 `queue_motion_set_status_c(true)` 开启，多次 `push_back` 添加轨迹点，最后 `send_to_controller` 一次性下发
 
 ### 清错后恢复

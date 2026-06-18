@@ -1,5 +1,5 @@
 /**
- * test_info_query.cpp
+ * test_info_query_api.cpp
  * @brief 相关信息查询接口（包括）
  * @attention 确保机械臂供电正常、网络通信正常，
  * @note 运行步骤

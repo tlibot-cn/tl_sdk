@@ -1,5 +1,5 @@
 /**
- * test_modbus.cpp
+ * test_modbus_api.cpp
  * @brief Modbus 主站通信示例程序
  * @attention
  *   - 确保控制器网络通信正常

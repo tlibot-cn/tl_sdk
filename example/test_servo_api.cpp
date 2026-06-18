@@ -1,5 +1,5 @@
 /**
- * test_servo.cpp
+ * test_servo_api.cpp
  * @brief 伺服状态与速度控制示例程序
  * @attention
  *   - 确保机械臂供电正常、网络通信正常
