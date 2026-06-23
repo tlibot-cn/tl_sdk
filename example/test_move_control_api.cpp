@@ -1,7 +1,11 @@
 /**
  * test_move_control_api.cpp
  * @brief 运动控制相关接口（包括MoveJ、MoveL）
- * @attention 确保机械臂供电正常、网络通信正常
+ * @attention
+ *   - 运行模式：示教模式
+ *   - 开始前需: connect_robot → set_servo_state(1) → set_servo_poweron
+ *   - 退出前需: set_servo_poweroff → disconnect_robot
+ *   - 确保机械臂供电正常、网络通信正常
  * @note 运行步骤
  *       编译: cd build && cmake .. && make
  *       运行: ./test_move_control_api

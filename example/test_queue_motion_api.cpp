@@ -6,6 +6,9 @@
  *   - 默认控制器 IP 为 192.168.1.13，可根据实际环境修改
  *   - 队列运动模式下，所有指令先在本地缓存，调用 send_to_controller 后一次性下发执行
  *   - 演示三种队列运动：纯 MoveJ、纯 MoveL、MoveJ+MoveL 混合
+ *   - 运行模式: 队列模式（在queue_motion_set_status(true)之后，即可进入队列模式，在此之前建议set_current_mode(sock, 2)切换到运行模式）
+ *   - 开始前需: connect_robot → 上电 → queue_motion_set_status(true)
+ *   - 退出前需: queue_motion_set_status(false) → set_servo_poweroff → disconnect_robot
  * @note 运行步骤
  *       编译: cd build && cmake .. && make
  *       运行: ./test_queue_motion
@@ -183,7 +186,6 @@ int main()
     std::this_thread::sleep_for(std::chrono::milliseconds(300));
 
     // ---- 切换为运行模式 ----
-    // 队列运动需要在运行模式下执行（2=运行），切换后控制器通常自动上电
     std::cout << "--- 切换运行模式 ---\n";
     Result ret = set_current_mode(sock, 2);
     if (ret == Result::SUCCESS) {

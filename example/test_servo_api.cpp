@@ -4,6 +4,7 @@
  * @attention
  *   - 确保机械臂供电正常、网络通信正常
  *   - 默认控制器 IP 为 192.168.1.13，可根据实际环境修改
+ *   - 运行模式：示教模式
  *   - 伺服状态机: 0=停止 → 1=就绪 → 3=运行（上电后）
  *   - set_servo_state(1) 必须先于 set_servo_poweron 调用
  *   - set_servo_poweroff 只能在 state=3 时调用，成功后回到 state=1

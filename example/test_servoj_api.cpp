@@ -6,6 +6,9 @@
  *   - 需要双端口连接: 6001（控制）+ 7000（伺服高频透传）
  *   - servoJ 周期约 10ms，回调内不要做耗时操作
  *   - 默认控制器 IP 为 192.168.1.13，可根据实际环境修改
+ *   - 运行模式: 透传模式（实时的将关节数据下发给控制器，控制器直接响应。连接7000端口后，并调用open_servoJ即可进入透传模式。在此之前建议set_current_mode(sock, 2)切换到运行模式）
+ *   - 开始前需: 双端口连接(6001+7000) → 上电 → open_servoJ
+ *   - 退出前需: close_servoJ → set_servo_poweroff → disconnect_robot(双端口)
  * @note 运行步骤
  *       编译: cd build && cmake .. && make
  *       运行: ./test_servoj
@@ -86,6 +89,12 @@ int main()
             std::cout << "  [信息] 伺服已运行 (servo_state=3)\n";
         }
     }
+
+    // ---- 切换为运行模式 ----
+    print_separator("切换运行模式");
+    ret = set_current_mode(sock, 2);
+    print_result("set_current_mode(2)", ret);
+    std::this_thread::sleep_for(std::chrono::milliseconds(300));
 
     // ============================================================
     // 打开 servoJ 模式

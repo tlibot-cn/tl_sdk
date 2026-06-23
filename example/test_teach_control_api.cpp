@@ -1,7 +1,11 @@
 /**
  * test_teach_control_api.cpp
  * @brief 示教控制相关接口
- * @attention 确保机械臂供电正常、网络通信正常
+ * @attention
+ *   - 运行模式: 示教模式
+ *   - 开始前需: connect_robot → set_servo_state(1) → set_servo_poweron
+ *   - 退出前需: set_servo_poweroff → disconnect_robot
+ *   - 确保机械臂供电正常、网络通信正常
  * @note 运行步骤
  *       编译: cd build && cmake .. && make
  *       运行: ./test_teach_control_api
@@ -89,11 +93,21 @@ int main() {
     // 使能上电
     enable_servo(socket_fd);
 
+    // ----切换为示教模式----
+    // 示教点动需要在示教模式下执行（0=示教）
+    std::cout << "--- 切换示教模式 ---" << std::endl;
+    auto ret = set_current_mode(socket_fd, 0);
+    if (ret != Result::SUCCESS) {
+        std::cerr << "[ERROR] 切换示教模式失败，程序退出!" << std::endl;
+        return -1;
+    }
+    std::cout << "[INFO] 已切换为示教模式" << std::endl;
+
     // ----示教点动---
     std::cout << "[INFO] **********示教点动**********" << std::endl;
     int axis = 1;
     bool direction = true;
-    auto ret = robot_start_jogging(socket_fd, axis, direction);
+    ret = robot_start_jogging(socket_fd, axis, direction);
     if (ret != Result::SUCCESS) {
         std::cerr << "[ERROR] 示教点动失败，程序退出!" << std::endl;
         return -1;

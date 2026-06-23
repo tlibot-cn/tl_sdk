@@ -1,7 +1,10 @@
 /**
  * test_job_control_api.cpp
  * @brief 作业控制相关接口（包括作业文件插入MoveJ、MoveL、MoveC，打开作业文件，创建作业文件，获取全部作业文件名，运行作业文件）
- * @attention 确保机械臂供电正常、网络通信正常
+ * @attention
+ *   - 插入作业之前需要先打开一个作业文件
+ *   - 运行一个作业文件需要切换到运行模式
+ *   - 确保机械臂供电正常、网络通信正常
  * @note 运行步骤
  *       编译: cd build && cmake .. && make
  *       运行: ./test_job_control_api
@@ -184,6 +187,16 @@ int main() {
             std::cout << "[INFO] 作业文件 " << i++ << " 名称: " << name << std::endl;
         }
     }
+
+    // ----切换为运行模式----
+    // 运行作业文件需要在运行模式下执行（2=运行）
+    std::cout << "--- 切换运行模式 ---" << std::endl;
+    ret = set_current_mode(socket_fd, 2);
+    if (ret != Result::SUCCESS) {
+        std::cerr << "[ERROR] 切换运行模式失败，程序退出!" << std::endl;
+        return -1;
+    }
+    std::cout << "[INFO] 已切换为运行模式" << std::endl;
 
     // ----运行作业文件----
     std::cout << "[INFO] **********运行作业文件**********" << std::endl;
