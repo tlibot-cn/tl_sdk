@@ -2,3 +2,4 @@
 .opencode
 build
 .sisyphus
+__pycache__

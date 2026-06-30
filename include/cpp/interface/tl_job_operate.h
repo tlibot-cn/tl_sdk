@@ -443,6 +443,44 @@ EXPORT_API Result job_insert_conveyor_clear_robot(SOCKETFD socketFd, int robotNu
 */
 EXPORT_API Result job_insert_conveyor_wait(SOCKETFD socketFd, int line, int id, int overtimr, std::string materialResults, std::string materiallLocation);
 EXPORT_API Result job_insert_conveyor_wait_robot(SOCKETFD socketFd, int robotNum, int line, int id, int overtimr, std::string materialResults, std::string materiallLocation);
+/**
+* @brief 向作业文件插入一条FORCE_COLLISION_ON(力传感器碰撞检测开启)指令
+*/
+EXPORT_API Result job_insert_force_collision_on(SOCKETFD socketFd, int line);
+EXPORT_API Result job_insert_force_collision_on_robot(SOCKETFD socketFd, int robotNum, int line);
+
+/**
+* @brief 向作业文件插入一条FORCE_COLLISION_OFF(力传感器碰撞检测关闭)指令
+*/
+EXPORT_API Result job_insert_force_collision_off(SOCKETFD socketFd, int line);
+EXPORT_API Result job_insert_force_collision_off_robot(SOCKETFD socketFd, int robotNum, int line);
+
+/**
+* @brief 向作业文件插入一条FORCE_PAYLOAD_ADD(添加力传感器防碰撞负载)指令
+* @param mass 质量
+* @param centerX 质心X
+* @param centerY 质心Y
+* @param centerZ 质心Z
+*/
+EXPORT_API Result job_insert_force_payload_add(SOCKETFD socketFd, int line, double mass, double centerX, double centerY, double centerZ);
+EXPORT_API Result job_insert_force_payload_add_robot(SOCKETFD socketFd, int robotNum, int line, double mass, double centerX, double centerY, double centerZ);
+
+/**
+* @brief 向作业文件插入一条FORCE_PAYLOAD_REMOVE(移除力传感器防碰撞负载)指令
+*/
+EXPORT_API Result job_insert_force_payload_remove(SOCKETFD socketFd, int line);
+EXPORT_API Result job_insert_force_payload_remove_robot(SOCKETFD socketFd, int robotNum, int line);
+
+/**
+* @brief 向作业文件插入一条FORCE_THRESHOLD_SET(设置力传感器防碰撞阈值)指令
+* @param forceUpperLimit 力上限
+* @param forceLowerLimit 力下限
+* @param torqueUpperLimit 力矩上限
+* @param torqueLowerLimit 力矩下限
+*/
+EXPORT_API Result job_insert_force_threshold_set(SOCKETFD socketFd, int line, double forceUpperLimit, double forceLowerLimit, double torqueUpperLimit, double torqueLowerLimit);
+EXPORT_API Result job_insert_force_threshold_set_robot(SOCKETFD socketFd, int robotNum, int line, double forceUpperLimit, double forceLowerLimit, double torqueUpperLimit, double torqueLowerLimit);
+
 
 //====================================================================
 
@@ -475,6 +513,13 @@ EXPORT_API Result job_insert_axis_motion_velocity_rbobt(SOCKETFD socketFd, int r
 */
 Result job_insert_axis_motion_torque(SOCKETFD socketFd, int line, AxisTorque axisParam);
 Result job_insert_axis_motion_torque_rbobt(SOCKETFD socketFd, int robotNum, int line, AxisTorque axisParam);
+
+/**
+* @brief 向作业文件插入独立轴PV/PP模式最大速度限制指令
+* @param line 插入的位置
+*/
+EXPORT_API Result job_insert_axis_motion_speed_limit(SOCKETFD socketFd, int line, AxisSpeedLimit axisParam);
+EXPORT_API Result job_insert_axis_motion_speed_limit_rbobt(SOCKETFD socketFd, int robotNum, int line, AxisSpeedLimit axisParam);
 
 /**
 * @brief 向作业文件插入轴运动stop控制指令

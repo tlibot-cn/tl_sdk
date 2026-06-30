@@ -123,6 +123,16 @@ EXPORT_API int queue_motion_push_back_moveL_extra_c(SOCKETFD socketFd, int coord
 EXPORT_API int queue_motion_push_back_moveL_extra_robot_c(SOCKETFD socketFd, int robotNum,  int coord, double vel, double acc, double dec, int pl, double* targetPos);
 
 /**
+* @brief 队列运动模式的本地队列最后插入一条moveCExtra外部轴关节运动
+* @param targetPos 目标点坐标 长度7+7 本体7位 外部轴7位
+* @param velocity 参数范围(1,1000] mm/s
+* @param acc，dec 参数范围(1,100]
+* @param pl 多条轨迹之间平滑参数 参数范围[0,5]
+*/
+EXPORT_API int queue_motion_push_back_moveC_extra_c(SOCKETFD socketFd, int coord, double vel, double acc, double dec, int pl, double* targetPos);
+EXPORT_API int queue_motion_push_back_moveC_extra_robot_c(SOCKETFD socketFd, int robotNum,  int coord, double vel, double acc, double dec, int pl, double* targetPos);
+
+/**
 * @brief 队列运动模式的本地队列最后插入一条Timer指令
 * @param time 延时 单位s
 */
@@ -136,6 +146,43 @@ EXPORT_API int queue_motion_push_back_timer_robot_c(SOCKETFD socketFd, int robot
 */
 EXPORT_API int queue_motion_push_back_dout_c(SOCKETFD socketFd, int port, bool value);
 EXPORT_API int queue_motion_push_back_dout_robot_c(SOCKETFD socketFd, int robotNum, int port, bool value);
+
+/**
+* @brief 队列运动模式的本地队列最后插入一条FORCE_COLLISION_ON(力传感器碰撞检测开启)指令
+*/
+EXPORT_API int queue_motion_push_back_force_collision_on_c(SOCKETFD socketFd);
+EXPORT_API int queue_motion_push_back_force_collision_on_robot_c(SOCKETFD socketFd, int robotNum);
+
+/**
+* @brief 队列运动模式的本地队列最后插入一条FORCE_COLLISION_OFF(力传感器碰撞检测关闭)指令
+*/
+EXPORT_API int queue_motion_push_back_force_collision_off_c(SOCKETFD socketFd);
+EXPORT_API int queue_motion_push_back_force_collision_off_robot_c(SOCKETFD socketFd, int robotNum);
+
+/**
+* @brief 队列运动模式的本地队列最后插入一条FORCE_PAYLOAD_ADD(添加力传感器防碰撞负载)指令
+*/
+EXPORT_API int queue_motion_push_back_force_payload_add_c(SOCKETFD socketFd, double mass, double centerX, double centerY, double centerZ);
+EXPORT_API int queue_motion_push_back_force_payload_add_robot_c(SOCKETFD socketFd, int robotNum, double mass, double centerX, double centerY, double centerZ);
+
+/**
+* @brief 队列运动模式的本地队列最后插入一条FORCE_PAYLOAD_REMOVE(移除力传感器防碰撞负载)指令
+*/
+EXPORT_API int queue_motion_push_back_force_payload_remove_c(SOCKETFD socketFd);
+EXPORT_API int queue_motion_push_back_force_payload_remove_robot_c(SOCKETFD socketFd, int robotNum);
+
+/**
+* @brief 队列运动模式的本地队列最后插入一条FORCE_THRESHOLD_SET(设置力传感器防碰撞阈值)指令
+*/
+EXPORT_API int queue_motion_push_back_force_threshold_set_c(SOCKETFD socketFd, double forceUpperLimit, double forceLowerLimit, double torqueUpperLimit, double torqueLowerLimit);
+EXPORT_API int queue_motion_push_back_force_threshold_set_robot_c(SOCKETFD socketFd, int robotNum, double forceUpperLimit, double forceLowerLimit, double torqueUpperLimit, double torqueLowerLimit);
+
+/**
+* @brief 队列运动模式的本地队列最后插入一条独立轴PV/PP模式最大速度限制指令
+* @param speedLimit 最大速度限制
+*/
+EXPORT_API int queue_motion_push_back_axis_motion_speed_limit_c(SOCKETFD socketFd, unsigned int speedLimit);
+EXPORT_API int queue_motion_push_back_axis_motion_speed_limit_robot_c(SOCKETFD socketFd, int robotNum, unsigned int speedLimit);
 
 #ifdef __cplusplus
 }

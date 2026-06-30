@@ -147,6 +147,10 @@ struct AxisTorque {
 	double axis_torque_slope;	///转矩斜坡
 };
 
+struct AxisSpeedLimit {
+	unsigned int axis_speed_limit;  ///< PV/PP模式最大速度
+};
+
 struct Axisspeedjudge {
 	int axis_velocity_judgment;  ///判断值
 	int judgment_result_variable_name;	///允许误差

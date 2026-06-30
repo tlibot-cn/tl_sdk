@@ -10,14 +10,31 @@ set(PROJ_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/../..)
 # 头文件路径
 set(TL_INCLUDE_DIR ${PROJ_ROOT}/include)
 
-# 动态库路径（x86 平台），ARM64 请改为 lib/arm64/
-set(TL_LIB_DIR ${PROJ_ROOT}/lib/x86)
+# 动态库路径（不同平台路径不同）
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    if(CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
+        set(TL_LIB_DIR ${PROJ_ROOT}/lib/linux/arm64)
+    else()
+        set(TL_LIB_DIR ${PROJ_ROOT}/lib/linux/x86)
+    endif()
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+    set(TL_LIB_DIR ${PROJ_ROOT}/lib/windows)
+else()
+    set(TL_LIB_DIR ${PROJ_ROOT}/lib/linux/x86)
+endif()
 
-# 将 _tl_host.so 作为导入的共享库
+# 导入 libtl_host.so 共享库（注意：_tl_host.so 是 Python SWIG 扩展模块，不可用于 C++ 链接）
 add_library(tl_host SHARED IMPORTED)
-set_target_properties(tl_host PROPERTIES
-    IMPORTED_LOCATION ${TL_LIB_DIR}/_tl_host.so
-)
+if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+    set_target_properties(tl_host PROPERTIES
+        IMPORTED_LOCATION ${TL_LIB_DIR}/tl_host.dll
+        IMPORTED_IMPLIB ${TL_LIB_DIR}/tl_host.lib
+    )
+else()
+    set_target_properties(tl_host PROPERTIES
+        IMPORTED_LOCATION ${TL_LIB_DIR}/libtl_host.so
+    )
+endif()
 
 # 自动扫描所有 .cpp 源文件生成可执行文件
 file(GLOB EXAMPLE_SOURCES "*.cpp")

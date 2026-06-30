@@ -218,8 +218,9 @@ int main()
         // 关节角度: J1=10°, J2=20°, J3=30°, J4=0°, J5=0°, J6=0°
         std::vector<double> joint_pos = {10, 20, 30, 0, 0, 0};
         std::vector<double> cartesian_pos;
+        bool convert_state = false;
 
-        ret = get_origin_coord_to_target_coord(sock, 0, joint_pos, 1, cartesian_pos);
+        ret = get_origin_coord_to_target_coord(sock, 0, joint_pos, 1, cartesian_pos, convert_state);
         print_result("get_origin_coord_to_target_coord (关节→直角) 正解", ret);
         print_vector("输入关节角度 [°]", joint_pos);
         if (ret == Result::SUCCESS) {
@@ -240,7 +241,7 @@ int main()
         // 使用正解输出的直角坐标作为输入，验证正反解一致性
         if (ret == Result::SUCCESS && cartesian_pos.size() >= 6) {
             std::vector<double> joint_back;
-            ret = get_origin_coord_to_target_coord(sock, 1, cartesian_pos, 0, joint_back);
+            ret = get_origin_coord_to_target_coord(sock, 1, cartesian_pos, 0, joint_back, convert_state);
             print_result("get_origin_coord_to_target_coord (直角→关节) 逆解", ret);
             std::cout << "  输入直角坐标:" << std::endl;
             std::cout << "    位移 [mm]: X=" << cartesian_pos[0] << ", Y=" << cartesian_pos[1]
@@ -268,8 +269,9 @@ int main()
     // 取一个直角坐标点，逆解为关节角
     std::vector<double> target_pose = {300, 0, 300, 3.141, 0, 0}; // X=300mm, Y=0, Z=300mm
     std::vector<double> target_joints;
+    bool convert_state2 = false;
 
-    ret = get_origin_coord_to_target_coord(sock, 1, target_pose, 0, target_joints);
+    ret = get_origin_coord_to_target_coord(sock, 1, target_pose, 0, target_joints, convert_state2);
     print_result("逆解: 直角→关节", ret);
     if (ret == Result::SUCCESS) {
         print_vector("目标直角坐标 [mm, rad]", target_pose);
