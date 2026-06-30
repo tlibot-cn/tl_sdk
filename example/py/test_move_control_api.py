@@ -102,6 +102,15 @@ def main():
         return -1
     print("[INFO] 连接成功 (socket=" + str(socket_fd) + ")")
 
+    # ---- 切换为示教模式 ----
+    print("--- 切换示教模式 ---")
+    ret = set_current_mode(socket_fd, 0)
+    if ret != SUCCESS:
+        print("[ERROR] 切换示教模式失败，程序退出!")
+        return -1
+    print("[INFO] 已切换为示教模式")
+    print()
+
     # ---- 使能上电 ----
     enable_servo(socket_fd)
 

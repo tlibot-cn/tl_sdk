@@ -39,15 +39,18 @@ def enable_servo(socket_fd):
         set_servo_state(socket_fd, 1)
         time.sleep(0.5)
         set_servo_poweron(socket_fd)
+        time.sleep(2)
     elif state == 1:
         # 就绪态：直接上电
         set_servo_poweron(socket_fd)
+        time.sleep(2)
     elif state == 2:
         # 报警态：清错 → 就绪 → 上电
         clear_error(socket_fd)
         set_servo_state(socket_fd, 1)
         time.sleep(0.5)
         set_servo_poweron(socket_fd)
+        time.sleep(2)
     elif state == 3:
         print("[INFO] 机械臂已在使能上电状态")
     else:

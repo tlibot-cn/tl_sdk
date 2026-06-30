@@ -90,6 +90,16 @@ int main() {
     }
     std::cout << "[INFO] 连接成功 (socket=" << socket_fd << ")" << std::endl;
 
+    // ----切换为示教模式----
+    std::cout << "--- 切换示教模式 ---" << std::endl;
+    auto ret = set_current_mode(socket_fd, 0);
+    if (ret != Result::SUCCESS) {
+        std::cerr << "[ERROR] 切换示教模式失败，程序退出!" << std::endl;
+        return -1;
+    }
+    std::cout << "[INFO] 已切换为示教模式" << std::endl;
+    std::cout << std::endl;
+
     // 使能上电
     enable_servo(socket_fd);
 
@@ -104,7 +114,7 @@ int main() {
     cmd.dec            = 10;              
     cmd.pl             = 0;                 
     cmd.targetPosValue = std::vector<double>{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-    auto ret = robot_movej(socket_fd, cmd);
+    ret = robot_movej(socket_fd, cmd);
     if (ret != Result::SUCCESS) {
         std::cerr << "[ERROR] MoveJ运动控制失败，程序退出!" << std::endl;
         return -1;
