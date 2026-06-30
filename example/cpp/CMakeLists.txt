@@ -36,6 +36,18 @@ else()
     )
 endif()
 
+# ---- SDL2 依赖（用于 F710 手柄遥操作示例）----
+find_package(SDL2 QUIET)
+if(NOT SDL2_FOUND)
+    # 部分系统未提供 SDL2 CMake 配置，回退到 pkg-config
+    find_package(PkgConfig QUIET)
+    if(PkgConfig_FOUND)
+        pkg_check_modules(SDL2 REQUIRED sdl2)
+    else()
+        message(FATAL_ERROR "未找到 SDL2，请安装: sudo apt install libsdl2-dev")
+    endif()
+endif()
+
 # 自动扫描所有 .cpp 源文件生成可执行文件
 file(GLOB EXAMPLE_SOURCES "*.cpp")
 foreach(SOURCE_FILE ${EXAMPLE_SOURCES})
@@ -49,3 +61,21 @@ foreach(SOURCE_FILE ${EXAMPLE_SOURCES})
         BUILD_RPATH ${TL_LIB_DIR}
     )
 endforeach()
+
+# ---- F710 手柄遥操作示例需要链接 SDL2 ----
+set_target_properties(test_teleop_f710_servoj PROPERTIES
+    INSTALL_RPATH ${TL_LIB_DIR}
+    BUILD_RPATH ${TL_LIB_DIR}
+)
+if(TARGET SDL2::SDL2)
+    # SDL2 提供了 CMake 导入目标（推荐）
+    target_link_libraries(test_teleop_f710_servoj PRIVATE SDL2::SDL2)
+elseif(SDL2_FOUND)
+    # 回退到传统变量方式
+    target_link_libraries(test_teleop_f710_servoj PRIVATE ${SDL2_LIBRARIES})
+    target_include_directories(test_teleop_f710_servoj PRIVATE ${SDL2_INCLUDE_DIRS})
+else()
+    # pkg-config 回退
+    target_link_libraries(test_teleop_f710_servoj PRIVATE ${SDL2_LDFLAGS})
+    target_include_directories(test_teleop_f710_servoj PRIVATE ${SDL2_CFLAGS_OTHER})
+endif()
