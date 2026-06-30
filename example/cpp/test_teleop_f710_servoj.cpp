@@ -324,9 +324,12 @@ int main(int argc, char *argv[]) {
 
     // ---- FK 零位关节角 → 笛卡尔位姿（归零目标）----
     std::vector<double> home_cart(7, 0.0);
-    ret = get_origin_coord_to_target_coord(
-        g_sock_tcp, 0, HOME_JOINTS,
-        1, home_cart, 0, ref_pos);
+    {
+        bool convert_state = false;
+        ret = get_origin_coord_to_target_coord(
+            g_sock_tcp, 0, HOME_JOINTS,
+            1, home_cart, convert_state, 0, ref_pos);
+    }
     if (ret != Result::SUCCESS || home_cart.size() < 6) {
         std::cerr << "FK 零位关节角失败\n";
         for (int i = 0; i < 6; ++i) home_cart[i] = 0.0;
@@ -485,9 +488,10 @@ int main(int argc, char *argv[]) {
         if (has_input || force_ik) {
             force_ik = false;
             std::vector<double> new_joint(NUM_JOINTS, 0.0);
+            bool convert_state = false;
             ret = get_origin_coord_to_target_coord(
                 g_sock_tcp, 1, target_pose,
-                0, new_joint, 0, ref_pos);
+                0, new_joint, convert_state, 0, ref_pos);
             if (ret == Result::SUCCESS) {
                 joint_cmd.swap(new_joint);
                 ref_pos = joint_cmd;

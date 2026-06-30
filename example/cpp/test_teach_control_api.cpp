@@ -103,7 +103,8 @@ int main() {
     }
     std::cout << "[INFO] 已切换为示教模式" << std::endl;
 
-    // ----示教点动---
+    // ----示教点动（注意安全）----
+    // ⚠️  robot_start_jogging 会直接驱动机器人运动，运行前确保安全区域无人
     std::cout << "[INFO] **********示教点动**********" << std::endl;
     int axis = 1;
     bool direction = true;
