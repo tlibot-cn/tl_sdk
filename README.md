@@ -22,7 +22,7 @@
 ### 编译运行示例
 
 ```bash
-cd example/build
+cd example/cpp/build
 cmake ..
 make
 ```
@@ -39,18 +39,18 @@ make
 也可在项目根目录直接运行：
 
 ```bash
-example/build/test_connect_api
-example/build/test_queue_motion_api
+example/cpp/build/test_connect_api
+example/cpp/build/test_queue_motion_api
 ```
 
 ### 示例程序说明
 
 | 示例 | 核心功能 | 适合谁看 |
 |---|---|---|---|
-| `test_connect_api.cpp` | 连接控制器 → 获取 SDK 版本 → 断开 | 初次接触，验证通信是否正常 |
-| `test_info_query_api.cpp` | 查询位置、状态、DH 参数、关节温度等 | 需要读取机器人信息时参考 |
-| `test_log_download_api.cpp` | 从控制器下载日志文件到本地 | 需要诊断/调试时参考 |
-| `test_queue_motion_api.cpp` | 队列运动完整流程：开启模式 → 编排 MoveJ/MoveL/MoveC/MoveS → 下发执行 | 需要预编排多条轨迹时参考 |
+| `example/cpp/test_connect_api.cpp` | 连接控制器 → 获取 SDK 版本 → 断开 | 初次接触，验证通信是否正常 |
+| `example/cpp/test_info_query_api.cpp` | 查询位置、状态、DH 参数、关节温度等 | 需要读取机器人信息时参考 |
+| `example/cpp/test_log_download_api.cpp` | 从控制器下载日志文件到本地 | 需要诊断/调试时参考 |
+| `example/cpp/test_queue_motion_api.cpp` | 队列运动完整流程：开启模式 → 编排 MoveJ/MoveL/MoveC/MoveS → 下发执行 | 需要预编排多条轨迹时参考 |
 
 ---
 
@@ -58,14 +58,25 @@ example/build/test_queue_motion_api
 
 ### 目录结构
 
-SDK 的核心文件只有 3 部分：
+SDK 的核心文件分布在以下目录：
 
 ```
 your_project/
-├── _tl_host.so              # 核心动态库（必须链接）
 ├── include/                 # C++ 和 C 头文件
-│   └── cpp/interface/tl_api.h   # 一站式包含（推荐）
-└── tl_interface.py          # Python 绑定（可选）
+│   ├── c/                   # C API 头文件
+│   └── cpp/                 # C++ API 头文件（推荐）
+│       └── interface/tl_api.h   # 一站式包含
+├── lib/                     # 平台相关动态库
+│   ├── x86/                 # Linux x86_64
+│   │   ├── _tl_host.so      # 核心动态库（必须链接）
+│   │   └── tl_interface.py  # Python 绑定（可选）
+│   └── arm64/               # Linux ARM64
+│       ├── _tl_host.so
+│       └── tl_interface.py
+├── docs/                    # 产品文档（.docx）
+└── example/                 # 示例程序
+    ├── cpp/                 # C++ 示例源码 + CMakeLists.txt
+    └── py/                  # Python 示例（开发中）
 ```
 
 ### C++ 项目
@@ -79,14 +90,16 @@ your_project/
 编译时链接 `_tl_host.so` 和 `-lpthread`：
 
 ```bash
-g++ -std=c++11 my_program.cpp -o my_program -I./include ./_tl_host.so -lpthread
-export LD_LIBRARY_PATH=.:$LD_LIBRARY_PATH
+g++ -std=c++11 my_program.cpp -o my_program -I./include ./lib/x86/_tl_host.so -lpthread
+export LD_LIBRARY_PATH=lib/x86:$LD_LIBRARY_PATH
 ./my_program
 ```
 
 ### Python 项目
 
 ```python
+import sys
+sys.path.append("lib/x86")
 from tl_interface import *
 sock = connect_robot("192.168.1.13", "6001")
 ```
@@ -153,6 +166,7 @@ clear_error → set_servo_poweroff → set_servo_state(1) → set_servo_poweron
 ## 注意事项
 
 - **默认 IP**：`192.168.1.13`，请确保控制器网络可达
-- 修改代码后需要重新编译（`cmake .. && make`）
+- 修改代码后需要重新编译（`cd example/cpp/build && cmake .. && make`）
 - `tl_interface.py` 由 SWIG 自动生成，请勿手动修改
 - 部分接口仅在特定机器人模式下可用（示教/运行/远程），详见头文件注释
+- 动态库位于 `lib/x86/`（或 `lib/arm64/`）；CMake 构建已嵌入 RPATH 无需额外设置，手动 g++ 编译需设置 `LD_LIBRARY_PATH=lib/x86`

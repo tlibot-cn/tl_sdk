@@ -13,20 +13,20 @@
 #### CMake（推荐）
 
 ```bash
-cd example/build
+cd example/cpp/build
 cmake ..
 make
 ```
 
-- 自动扫描 `example/` 下所有 `.cpp` 源文件生成可执行文件
+- 自动扫描 `example/cpp/` 下所有 `.cpp` 源文件生成可执行文件
 - 自动嵌入 RPATH，运行时无需设置 `LD_LIBRARY_PATH`
 - 直接运行 `./test_connect_api`、`./test_servo_api` 等即可（可执行文件名对应源文件名，如 `test_servo_api.cpp` 生成 `test_servo_api`）
 
 ### 运行前设置
 
 ```bash
-export LD_LIBRARY_PATH=.:$LD_LIBRARY_PATH
-./example
+export LD_LIBRARY_PATH=lib/x86:$LD_LIBRARY_PATH
+example/cpp/build/test_connect_api
 ```
 
 ## 关键架构
@@ -66,7 +66,7 @@ set_servo_poweron(sock);           // 步骤2: 上电使能
 
 ## 编码风格参考
 
-以下规范以 `example/test_connect_api.cpp`、`test_info_query_api.cpp`、`test_log_download_api.cpp` 三个文件为首要参考源。
+以下规范以 `example/cpp/test_connect_api.cpp`、`test_info_query_api.cpp`、`test_log_download_api.cpp` 三个文件为首要参考源。
 
 ### 文件头注释格式
 
@@ -78,8 +78,8 @@ set_servo_poweron(sock);           // 步骤2: 上电使能
  * @brief 一句话描述功能
  * @attention 运行前提条件/注意事项
  * @note 运行步骤
- *       编译: g++ -std=c++11 filename.cpp -o output -I./include ./_tl_host.so -lpthread
- *       链接动态库: export LD_LIBRARY_PATH=.:$LD_LIBRARY_PATH
+ *       编译: g++ -std=c++11 filename.cpp -o output -I./include ./lib/x86/_tl_host.so -lpthread
+ *       链接动态库: export LD_LIBRARY_PATH=lib/x86:$LD_LIBRARY_PATH
  *       运行: ./output
  */
 ```
@@ -154,12 +154,40 @@ int main() {
 
 ```
 include/
-├── c/             # C 语言 API（函数名以 _c 结尾）
-│   ├── interface/ # tl_c_interface.h, tl_c_queue_operate.h, tl_c_io.h, ...
-│   └── parameter/ # tl_define.h, tl_interface_parameter.h
-└── cpp/           # C++ API（推荐使用）
-    ├── interface/ # tl_api.h(一站式包含), tl_interface.h, tl_job_operate.h, tl_io.h, tl_modbus.h, ...
-    └── parameter/ # tl_define.h, tl_interface_parameter.h, tl_modbus_parameter.h, ...
+├── c/                  # C 语言 API（函数名以 _c 结尾）
+│   ├── interface/      # tl_c_interface.h, tl_c_queue_operate.h, tl_c_io.h, ...
+│   └── parameter/      # tl_define.h, tl_interface_parameter.h
+└── cpp/                # C++ API（推荐使用）
+    ├── interface/      # tl_api.h(一站式包含), tl_interface.h, tl_io.h, tl_modbus.h, tl_queue_operate.h, tl_track.h, tl_dual_arm.h, tl_vfd_ctr.h, tl_craft_*.h, ...
+    └── parameter/      # tl_define.h, tl_interface_parameter.h, tl_modbus_parameter.h, tl_io_parameter.h, tl_parameter.h, tl_craft_*_parameter.h, ...
+
+lib/                    # 平台相关动态库和 Python 绑定
+├── x86/                # Linux x86_64
+│   ├── _tl_host.so     # 核心动态库
+│   └── tl_interface.py # Python 绑定
+└── arm64/              # Linux ARM64
+    ├── _tl_host.so
+    ├── libmath_wrapper.so
+    ├── libmodbus_wrapper.so
+    ├── libservoJ_wrapper.so
+    ├── libtl_host.so
+    └── tl_interface.py
+
+docs/                   # 产品文档（.docx）
+├── SDK说明文档-linux-arm64-cpp.docx
+├── SDK说明文档-linux-arm64-py.docx
+├── SDK说明文档-linux-x86-cpp.docx
+└── SDK说明文档-linux-x86-py.docx
+
+example/                # 示例程序
+├── cpp/                # C++ 示例
+│   ├── CMakeLists.txt
+│   ├── test_connect_api.cpp
+│   ├── test_info_query_api.cpp
+│   ├── test_queue_motion_api.cpp
+│   └── ...（更多 .cpp 示例）
+├── py/                 # Python 示例（开发中）
+└── build/              # CMake 构建输出
 ```
 
 ### 一站式包含
@@ -228,9 +256,9 @@ struct MoveCmd {
 
 ## Python 绑定
 
-- 文件: `tl_interface.py`（自动生成，**禁止手动修改**）
+- 文件: `lib/x86/tl_interface.py`（自动生成，**禁止手动修改**）
 - 生成工具: SWIG 4.2.1
-- 底层模块: `_tl_host`（需 `import _tl_host`，对应 `_tl_host.so`）
+- 底层模块: `_tl_host`（需 `import _tl_host`，对应 `lib/x86/_tl_host.so`）
 
 ## 已知问题
 
