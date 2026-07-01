@@ -208,6 +208,44 @@ EXPORT_API int job_insert_moveL_robot_c(SOCKETFD socketFd, int robotNum,  int li
 EXPORT_API int job_insert_moveC_c(SOCKETFD socketFd,  int line, double vel, double acc, double dec, int pl, const char* posName);
 EXPORT_API int job_insert_moveC_robot_c(SOCKETFD socketFd, int robotNum,  int line, double vel, double acc, double dec, int pl, const char* posName);
 
+/**
+* @brief 向作业文件插入一条FORCE_COLLISION_ON(力传感器碰撞检测开启)指令
+*/
+EXPORT_API int job_insert_force_collision_on_c(SOCKETFD socketFd, int line);
+EXPORT_API int job_insert_force_collision_on_robot_c(SOCKETFD socketFd, int robotNum, int line);
+
+/**
+* @brief 向作业文件插入一条FORCE_COLLISION_OFF(力传感器碰撞检测关闭)指令
+*/
+EXPORT_API int job_insert_force_collision_off_c(SOCKETFD socketFd, int line);
+EXPORT_API int job_insert_force_collision_off_robot_c(SOCKETFD socketFd, int robotNum, int line);
+
+/**
+* @brief 向作业文件插入一条FORCE_PAYLOAD_ADD(添加力传感器防碰撞负载)指令
+*/
+EXPORT_API int job_insert_force_payload_add_c(SOCKETFD socketFd, int line, double mass, double centerX, double centerY, double centerZ);
+EXPORT_API int job_insert_force_payload_add_robot_c(SOCKETFD socketFd, int robotNum, int line, double mass, double centerX, double centerY, double centerZ);
+
+/**
+* @brief 向作业文件插入一条FORCE_PAYLOAD_REMOVE(移除力传感器防碰撞负载)指令
+*/
+EXPORT_API int job_insert_force_payload_remove_c(SOCKETFD socketFd, int line);
+EXPORT_API int job_insert_force_payload_remove_robot_c(SOCKETFD socketFd, int robotNum, int line);
+
+/**
+* @brief 向作业文件插入一条FORCE_THRESHOLD_SET(设置力传感器防碰撞阈值)指令
+*/
+EXPORT_API int job_insert_force_threshold_set_c(SOCKETFD socketFd, int line, double forceUpperLimit, double forceLowerLimit, double torqueUpperLimit, double torqueLowerLimit);
+EXPORT_API int job_insert_force_threshold_set_robot_c(SOCKETFD socketFd, int robotNum, int line, double forceUpperLimit, double forceLowerLimit, double torqueUpperLimit, double torqueLowerLimit);
+
+/**
+* @brief 向作业文件插入独立轴PV/PP模式最大速度限制指令
+* @param line 插入的位置
+* @param speedLimit 最大速度限制
+*/
+EXPORT_API int job_insert_axis_motion_speed_limit_c(SOCKETFD socketFd, int line, unsigned int speedLimit);
+EXPORT_API int job_insert_axis_motion_speed_limit_robot_c(SOCKETFD socketFd, int robotNum, int line, unsigned int speedLimit);
+
 #ifdef __cplusplus
 }
 #endif

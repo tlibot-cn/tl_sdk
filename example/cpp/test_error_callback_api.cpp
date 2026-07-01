@@ -98,8 +98,9 @@ int main()
         // 设置一个明显不可达的直角坐标点（X 方向超出机械臂最大臂展）
         std::vector<double> unreachable_pose = {99999, 0, 0, 0, 0, 0};
         std::vector<double> joint_result;
+        bool convert_state = false;
 
-        ret = get_origin_coord_to_target_coord(sock, 1, unreachable_pose, 0, joint_result);
+        ret = get_origin_coord_to_target_coord(sock, 1, unreachable_pose, 0, joint_result, convert_state);
         print_result("逆解不可达点 (直角→关节)", ret);
         std::cout << "  输入直角坐标 [mm, rad]: X=99999, Y=0, Z=0" << std::endl;
         if (ret != Result::SUCCESS) {

@@ -9,6 +9,11 @@ extern "C" {
 #endif
 
 /**
+ * @brief 设置连接超时时间，连接超过限制时间后直接返回错误
+ */
+EXPORT_API int set_connect_timeout_seconds_c(int timeoutSeconds);
+
+/*
  * @brief 连接控制器
  * @param ip 控制器ip,"192.168.1.13"
  * @param port 端口号,"6001"
@@ -188,6 +193,19 @@ EXPORT_API int get_global_variant_c(SOCKETFD socketFd, const char* varName, doub
 EXPORT_API int get_global_variant_robot_c(SOCKETFD socketFd, int robotNum, const char* varName, double* vaule);
 
 /**
+ * @brief 设置代表末端夹爪状态的GI值 (夹爪状态:0空载 1抓取中 2抓取结束，通过set_global_variant设置GI变量值来表示目前夹爪的状态)
+ * @param varName GI变量  例如 "GI001"
+ */
+EXPORT_API int set_end_tool_state_gi_c(SOCKETFD socket_fd, const char* var_name);
+
+/**
+ * @brief 获取代表末端夹爪状态的GI值
+ * @param[out] varName 接收GI变量名的缓冲区
+ * @param varNameSize varName缓冲区长度
+ */
+EXPORT_API int get_end_tool_state_gi_c(SOCKETFD socket_fd, char* var_name, int var_name_size);
+
+/**
  * @brief 原坐标值转换为其他坐标值
  * @param originCoord 原坐标系    0 1 2 3 关节 直角 工具 用户
  * @param originPos 要进行转换的坐标值 [0,1,2,3,4,5,6]
@@ -197,8 +215,9 @@ EXPORT_API int get_global_variant_robot_c(SOCKETFD socketFd, int robotNum, const
  *        用户取值范围    0-2[-10000,10000] 3-6[-3.1416,3.1416]rad
  * @param targetCoord 目标坐标系  0 1 2 3 关节 直角 工具 用户
  * @param targetPos 转换后的坐标系
+ * @param convert_state 1-逆解成功, 0-逆解失败.
  */
-EXPORT_API int get_origin_coord_to_target_coord_c(SOCKETFD socketFd, int originCoord, double* originPos, int targetCoord, double* targetPos);
+EXPORT_API int get_origin_coord_to_target_coord_c(SOCKETFD socketFd, int originCoord, double* originPos, int targetCoord, double* targetPos, int* convert_state);
 
 /**
  * @brief 获取当前机器人DH参数
@@ -305,6 +324,16 @@ EXPORT_API int get_axis_position_robot_c(SOCKETFD socketFd, int robotNum,int num
  * @param num 要标定的独立轴
  */
 EXPORT_API int independent_axis_zero_calibration_c(SOCKETFD socketFd, int num);
+/**
+ * @brief 设置独立轴PV和PP模式最大速度限制(22.07版本没有该功能)
+ * @param maxVel 最大速度限制
+ */
+EXPORT_API int set_independent_axis_pv_and_pp_mode_max_vel_c(SOCKETFD socketFd, unsigned int maxVel);
+/**
+ * @brief 获取独立轴PV和PP模式最大速度限制(22.07版本没有该功能)
+ * @param maxVel 最大速度限制
+ */
+EXPORT_API int get_independent_axis_pv_and_pp_mode_max_vel_c(SOCKETFD socketFd, unsigned int* maxVel);
 /**
  * @brief 独立控制轴PV运动 仅支持外部轴(22.07版本没有该功能)
  * @param param 运动参数(详细参数在CIndependentAxisRun结构体中说明)

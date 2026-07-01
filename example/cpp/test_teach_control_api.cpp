@@ -24,15 +24,20 @@ void enable_servo(const int socket_fd)
   {
     case 0:
       set_servo_state(socket_fd, 1);
+      std::this_thread::sleep_for(std::chrono::milliseconds(500));
       set_servo_poweron(socket_fd);
+      std::this_thread::sleep_for(std::chrono::seconds(2));
       break;
     case 1:
       set_servo_poweron(socket_fd);
+      std::this_thread::sleep_for(std::chrono::seconds(2));
       break;
     case 2:
       clear_error(socket_fd);
       set_servo_state(socket_fd, 1);
+      std::this_thread::sleep_for(std::chrono::milliseconds(500));
       set_servo_poweron(socket_fd);
+      std::this_thread::sleep_for(std::chrono::seconds(2));
       break;
     case 3:
       std::cout << "[INFO] 机械臂已在使能上电状态" << std::endl;
@@ -103,7 +108,8 @@ int main() {
     }
     std::cout << "[INFO] 已切换为示教模式" << std::endl;
 
-    // ----示教点动---
+    // ----示教点动（注意安全）----
+    // ⚠️  robot_start_jogging 会直接驱动机器人运动，运行前确保安全区域无人
     std::cout << "[INFO] **********示教点动**********" << std::endl;
     int axis = 1;
     bool direction = true;

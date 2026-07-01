@@ -1,7 +1,11 @@
 /**
  * test_error_zero_api.cpp
- * @brief 错误处理与零位标定接口（包括清除错误、设置指定关节零位）
+ * @brief 错误处理接口（清除错误）
  * @attention 确保机械臂供电正常、网络通信正常
+ * @warning
+ *   set_axis_zero_position（设置关节零位）属于高级标定操作，
+ *   错误设置会导致机器人定位偏差甚至机械碰撞，默认已注释。
+ *   如需使用，请仔细阅读控制器手册并在专业人员指导下操作。
  * @note 运行步骤
  *       编译: cd build && cmake .. && make
  *       运行: ./test_error_zero_api
@@ -97,16 +101,21 @@ int main() {
     std::cout << "[INFO] 清除错误成功" << std::endl;
     std::cout << std::endl;
 
-    // ----设置指定关节零位----
-    std::cout << "[INFO] **********设置指定关节零位**********" << std::endl;
-    int axis = 1;
-    ret = set_axis_zero_position(socket_fd, axis);
-    if (ret != Result::SUCCESS) {
-        std::cerr << "[ERROR] 设置指定关节零位失败，程序退出!" << std::endl;
-        return -1;
-    }
-    std::cout << "[INFO] 设置指定关节零位成功" << std::endl;
-    std::cout << std::endl;
+    // ----设置指定关节零位（危险操作，默认注释）----
+    // ⚠️  危险: set_axis_zero_position 会修改机器人关节零位标定，
+    //    错误的值会导致所有后续运动出现定位偏差，严重时可能造成机械碰撞。
+    //    仅在专业指导下、确认当前零位确需校正时使用。
+    //    取消下面代码的注释前，请确认 axis 值正确且已理解全部后果。
+    //
+    // std::cout << "[INFO] **********设置指定关节零位**********" << std::endl;
+    // int axis = 1;
+    // ret = set_axis_zero_position(socket_fd, axis);
+    // if (ret != Result::SUCCESS) {
+    //     std::cerr << "[ERROR] 设置指定关节零位失败，程序退出!" << std::endl;
+    //     return -1;
+    // }
+    // std::cout << "[INFO] 设置指定关节零位成功" << std::endl;
+    // std::cout << std::endl;
 
     // 使能下电
     disable_servo(socket_fd);

@@ -2,6 +2,7 @@
 #define INCLUDE_CPP_PARAMETER_TL_INTERFACE_PARAMETER_H_
 
 #include <string>
+#include <vector>
 
 struct ToolParam {
     double X;                       //X轴偏移方向
@@ -113,6 +114,11 @@ struct RobotState {
     bool ioState = false;   //查询IO
     int position = -1;   //0-关节坐标  1-直角坐标
     bool dataildmotionpos = false;  //机械臂的运动点位
+    bool programRunStatus = false;  //运行状态
+    bool servoStatus = false;  //伺服状态
+    bool operationMode = false; // 操作模式，
+    bool globalSpeed = false; // 全局速度，
+    bool syncPosition = false; //外部轴坐标
     int posSum = 1;     //当查询机械臂运动点位时，posNum为每帧数据回复的点位数目
     std::vector<std::string> ioPort;    //IO端口，可查询的最大数量不可大于IO实际个数 例子:[ “DI1”, “DI16”, “DO1”, “DO3”, “DO17”]
     std::vector<std::string> optional;       //查询运动点位返回的坐标类型  "ACS"-关节参数 "MCS"-直角参数 "time"-时间戳 "reset"-重置点位记录
@@ -217,6 +223,7 @@ struct SixDimensionalForceCommunicationParams
         int sensorCommunicationType = 0;// 通讯类型 (0: EtherCAT, 1: Modbus RTU, 2: Modbus TCP)
         bool startupAutoConnectSensor = false;// 启动自动连接传感器
         int YDirection = 1;// Y 方向
+        int ZDirection = 1;// Z 方向
         int etherCat_mapNum = 0;// EtherCAT 参数
         // Modbus RTU 参数
         int modbus_rtu_slaveID = 1;
@@ -275,4 +282,27 @@ struct PayloadParamBySensor {
     PayloadParamBySensor(double mass = 0.0, double cx = 0.0, double cy = 0.0, double cz = 0.0)
         : payloadMass(mass), payloadMassCenterX(cx), payloadMassCenterY(cy), payloadMassCenterZ(cz) {}
 };
+struct InverseKinParameter
+{
+	int configuration;//1:左手系，2:右手系，0:自适应
+    int toolCoord;
+    int userCoord;
+    int standbyThree;
+    int standbyFour;
+    double vel_limit_perc;
+    double acc_limit_perc;
+    double dec_limit_perc;
+    InverseKinParameter ()
+    {
+    	configuration = 0;
+        toolCoord = 0;
+        userCoord = 0;
+        standbyThree = 0;
+        standbyFour = 0;
+        vel_limit_perc = 1.0;
+        acc_limit_perc = 1.0;
+        dec_limit_perc = 1.0;
+    };
+};
+
 #endif /* INCLUDE_API_TL_INTERFACE_PARAMETER_H_ */

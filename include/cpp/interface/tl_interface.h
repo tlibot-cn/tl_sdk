@@ -14,6 +14,11 @@
 EXPORT_API std::string get_library_version();
 
 /**
+ * @brief 设置连接超时时间，连接超过限制时间后直接返回错误
+ */
+EXPORT_API Result set_connect_timeout_seconds(int timeoutSeconds);
+
+/*
  * @brief 连接控制器
  * @param ip 控制器ip,"192.168.1.13"
  * @param port 端口号,"6001"
@@ -161,8 +166,8 @@ EXPORT_API Result get_robot_configuration(SOCKETFD socketFd, int& configuration)
 EXPORT_API Result get_robot_configuration_robot(SOCKETFD socketFd,  int robotNum, int& configuration);
 
 /**
- * @brief 获取机器人运行状态
- * @param status 机器人运行状态
+ * @brief 获取程序运行状态
+ * @param status 程序运行状态
  *  - 0 停止
  *  - 1 暂停
  *  - 2 运行
@@ -317,6 +322,18 @@ EXPORT_API Result tool_hand_7_point_calibrate_caculate_robot(SOCKETFD socketFd, 
  */
 EXPORT_API Result tool_hand_7_point_calibrate_clear(SOCKETFD socketFd, int pointNum, int toolNum);
 EXPORT_API Result tool_hand_7_point_calibrate_clear_robot(SOCKETFD socketFd, int robotNum, int pointNum, int toolNum);
+
+/**
+ * @brief 设置代表末端夹爪状态的GI值   (夹爪状态:0空载 1抓取中 2抓取结束，通过set_global_variant设置GI变量值来表示目前夹爪的状态)
+ * @param varName GI变量  例如GI001
+ */
+EXPORT_API Result set_end_tool_state_gi(SOCKETFD socket_fd, const std::string& var_name);
+
+/**
+ * @brief 获取代表末端夹爪状态的GI值
+ * @param varName GI变量  例如GI001
+ */
+EXPORT_API Result get_end_tool_state_gi(SOCKETFD socket_fd, std::string& var_name);
 
 //======================================================================================
 /**
@@ -501,11 +518,12 @@ EXPORT_API Result set_result_for_DH_robot(SOCKETFD socketFd, int robotNum, int& 
  *        用户取值范围    0-2[-10000,10000] 3-6[-3.1416,3.1416]rad
  * @param targetCoord 目标坐标系  0 1 2 3 关节 直角 工具 用户
  * @param targetPos 转换后的坐标系
+ * @param convert_state true-逆解成功, false-逆解失败.
  * @param form 形态
  * @param reference_pos 参考点
  */
-EXPORT_API Result get_origin_coord_to_target_coord(SOCKETFD socketFd, int originCoord, std::vector<double> originPos, int targetCoord,std::vector<double>& targetPos,int form = 0,const std::vector<double>& reference_pos={});
-EXPORT_API Result get_origin_coord_to_target_coord_robot(SOCKETFD socketFd, int robotNum, int originCoord, std::vector<double> originPos, int targetCoord,std::vector<double>& targetPos,int form = 0,const std::vector<double>& reference_pos={});
+EXPORT_API Result get_origin_coord_to_target_coord(SOCKETFD socketFd, int originCoord, std::vector<double> originPos, int targetCoord,std::vector<double>& targetPos,bool& convert_state,int form = 0,const std::vector<double>& reference_pos={});
+EXPORT_API Result get_origin_coord_to_target_coord_robot(SOCKETFD socketFd, int robotNum, int originCoord, std::vector<double> originPos, int targetCoord,std::vector<double>& targetPos,bool& convert_state,int form = 0,const std::vector<double>& reference_pos={});
 
 /**
  * @brief 切换当前机器人
@@ -891,6 +909,16 @@ EXPORT_API Result get_axis_position_robot(SOCKETFD socketFd, int robotNum,int& n
  */
 EXPORT_API Result independent_axis_zero_calibration(SOCKETFD socketFd, int num);
 /**
+ * @brief 设置独立轴PV和PP模式最大速度限制(22.07版本没有该功能)
+ * @param maxVel 最大速度限制
+ */
+EXPORT_API Result set_independent_axis_pv_and_pp_mode_max_vel(SOCKETFD socketFd, unsigned int maxVel);
+/**
+ * @brief 获取独立轴PV和PP模式最大速度限制(22.07版本没有该功能)
+ * @param maxVel 最大速度限制
+ */
+EXPORT_API Result get_independent_axis_pv_and_pp_mode_max_vel(SOCKETFD socketFd, unsigned int& maxVel);
+/**
  * @brief 独立控制轴PV运动 仅支持外部轴(22.07版本没有该功能)
  * @param param 运动参数(详细参数在IndependentAxisRun结构体中说明)
  */
@@ -1167,4 +1195,16 @@ EXPORT_API Result mark_base_sensor(SOCKETFD socketFd, bool& success);
  * @param[out] version_string 输出参数，用于接收查询到的软件版本号字符串
  */
 EXPORT_API Result query_joint_software_version(SOCKETFD socketFd, int axisNum, std::string& version_string);
+/**
+ * @brief 获取逆运动学全解
+ * @param tr_matrix 4x4 变换矩阵（旋转 + 平移），vector长度 = 16（行主序）
+ * @param posLast 上一关节角，长度 = 6（6 轴）
+ * @param posACS 当前关节角，长度 = 6（6 轴）
+ * @param swivel_angle 旋角
+ * @param optimize 优化标志
+ * @param full_solution 逆运动学全解结果
+ */
+EXPORT_API Result get_full_solution(SOCKETFD socketFd, std::vector<double> transMatrix, 
+	std::vector<double> posLast, std::vector<double> posACS, double swivel_angle, 
+	bool optimize, InverseKinParameter param, std::vector<std::vector<double>>& full_solution);
 #endif /* INCLUDE_API_TL_INTERFACE_H_ */

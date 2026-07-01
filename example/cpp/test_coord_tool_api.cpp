@@ -87,15 +87,17 @@ int main() {
     // 使能上电
     enable_servo(socket_fd);
 
+    // 注意: set_tool_hand_param/set_user_coordinate_data 涉及配置修改，
+    //       错误的值可能导致路径偏差，请确认参数正确。
     // ----设置工具手参数---
     std::cout << "[INFO] **********设置工具手参数**********" << std::endl;
     int tool_num = 1;
     ToolParam tool_param;
-    tool_param.X = 0; 
-    tool_param.Y = 0; 
+    tool_param.X = 0;
+    tool_param.Y = 0;
     tool_param.Z = 0;
-    tool_param.A = 0; 
-    tool_param.B = 0; 
+    tool_param.A = 0;
+    tool_param.B = 0;
     tool_param.C = 0;
     auto ret = set_tool_hand_param(socket_fd, tool_num, tool_param);
     if (ret != Result::SUCCESS) {
@@ -131,14 +133,14 @@ int main() {
     // ----获取当前工作坐标系----
     std::cout << "[INFO] **********获取当前工作坐标系**********" << std::endl;
     int coord;
-    ret = get_current_coord (socket_fd, coord);
+    ret = get_current_coord(socket_fd, coord);
     if (ret != Result::SUCCESS) {
         std::cerr << "[ERROR] 获取当前工作坐标系失败，程序退出!" << std::endl;
         return -1;
     }
     std::cout << "[INFO] 当前坐标系编号为：" << coord << std::endl;
     std::cout << std::endl;
-    
+
     // ----设置当前工作坐标系----
     std::cout << "[INFO] **********设置当前工作坐标系**********" << std::endl;
     coord = 1;

@@ -25,7 +25,7 @@ make
 ### 运行前设置
 
 ```bash
-export LD_LIBRARY_PATH=lib/x86:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=lib/linux/x86:$LD_LIBRARY_PATH
 example/cpp/build/test_connect_api
 ```
 
@@ -78,8 +78,8 @@ set_servo_poweron(sock);           // 步骤2: 上电使能
  * @brief 一句话描述功能
  * @attention 运行前提条件/注意事项
  * @note 运行步骤
- *       编译: g++ -std=c++11 filename.cpp -o output -I./include ./lib/x86/_tl_host.so -lpthread
- *       链接动态库: export LD_LIBRARY_PATH=lib/x86:$LD_LIBRARY_PATH
+ *       编译: g++ -std=c++11 filename.cpp -o output -I./include ./lib/linux/x86/libtl_host.so -lpthread
+ *       链接动态库: export LD_LIBRARY_PATH=lib/linux/x86:$LD_LIBRARY_PATH
  *       运行: ./output
  */
 ```
@@ -162,16 +162,26 @@ include/
     └── parameter/      # tl_define.h, tl_interface_parameter.h, tl_modbus_parameter.h, tl_io_parameter.h, tl_parameter.h, tl_craft_*_parameter.h, ...
 
 lib/                    # 平台相关动态库和 Python 绑定
-├── x86/                # Linux x86_64
-│   ├── _tl_host.so     # 核心动态库
-│   └── tl_interface.py # Python 绑定
-└── arm64/              # Linux ARM64
-    ├── _tl_host.so
-    ├── libmath_wrapper.so
-    ├── libmodbus_wrapper.so
-    ├── libservoJ_wrapper.so
-    ├── libtl_host.so
-    └── tl_interface.py
+├── linux/
+│   ├── x86/            # Linux x86_64
+│   │   ├── libtl_host.so          # 核心动态库（链接用）
+│   │   └── python/
+│   │       ├── _tl_host.so        # Python 扩展模块（SWIG）
+│   │       └── tl_interface.py    # Python 绑定入口
+│   └── arm64/          # Linux ARM64
+│       ├── libtl_host.so
+│       └── python/
+│           ├── libmath_wrapper.so
+│           ├── libmodbus_wrapper.so
+│           ├── libservoJ_wrapper.so
+│           ├── libtl_host.so      # ctypes 加载的动态库
+│           └── tl_interface.py    # Python 绑定入口（ctypes）
+└── windows/            # Windows x86_64
+    ├── tl_host.dll
+    ├── tl_host.lib
+    └── python/
+        ├── tl_host.pyd            # Python 扩展模块（SWIG）
+        └── tl_interface.py        # Python 绑定入口
 
 docs/                   # 产品文档（.docx）
 ├── SDK说明文档-linux-arm64-cpp.docx
@@ -256,9 +266,12 @@ struct MoveCmd {
 
 ## Python 绑定
 
-- 文件: `lib/x86/tl_interface.py`（自动生成，**禁止手动修改**）
-- 生成工具: SWIG 4.2.1
-- 底层模块: `_tl_host`（需 `import _tl_host`，对应 `lib/x86/_tl_host.so`）
+- **文件**: `lib/linux/x86/python/tl_interface.py`（SWIG 自动生成，**禁止手动修改**，Linux x86）
+- **文件**: `lib/linux/arm64/python/tl_interface.py`（ctypes 生成，Linux ARM64）
+- **文件**: `lib/windows/python/tl_interface.py`（SWIG 自动生成，Windows）
+- **生成工具**: SWIG 4.2.1（Linux x86 / Windows），ctypes（Linux ARM64）
+- **Python 版本要求**: 扩展模块编译目标为 **Python 3.10**，请使用 Python 3.10 运行
+- **底层模块**: Linux x86 加载 `_tl_host.so` 作为 `_nrc_host` 模块名（内部 init 函数 `PyInit__nrc_host`）
 
 ## 已知问题
 
