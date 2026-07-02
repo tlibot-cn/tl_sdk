@@ -8,7 +8,7 @@
  *   - 演示三种队列运动：纯 MoveJ、纯 MoveL、MoveJ+MoveL 混合
  *   - 运行模式: 队列模式（在queue_motion_set_status(true)之后，即可进入队列模式，在此之前建议set_current_mode(sock, 2)切换到运行模式）
  *   - 开始前需: connect_robot → 上电 → queue_motion_set_status(true)
- *   - 退出前需: queue_motion_set_status(false) → set_servo_poweroff → disconnect_robot
+ *   - 退出前需: queue_motion_set_status(false) → set_current_mode(0) → set_servo_poweroff → disconnect_robot
  * @note 运行步骤
  *       编译: cd build && cmake .. && make
  *       运行: ./test_queue_motion
@@ -184,32 +184,44 @@ int main()
     // ---- 清错 ----
     clear_error(sock);
     std::this_thread::sleep_for(std::chrono::milliseconds(300));
+    set_servo_poweroff(sock);
+    std::this_thread::sleep_for(std::chrono::milliseconds(300));
 
-    // ---- 切换为运行模式 ----
-    std::cout << "--- 切换运行模式 ---\n";
-    Result ret = set_current_mode(sock, 2);
-    if (ret == Result::SUCCESS) {
-        std::cout << "  [信息] 已切换为运行模式\n";
-    } else {
-        print_result("set_current_mode(2)", ret);
-    }
-    std::this_thread::sleep_for(std::chrono::seconds(1));
+    Result ret;
 
-    // ---- 检查伺服状态，未上电则手动上电 ----
+    // ---- 检查模式并确保伺服运行 ----
     {
-        int servo_state = -1;
-        ret = get_servo_state(sock, servo_state);
-        if (ret == Result::SUCCESS && servo_state == 3) {
-            std::cout << "  [信息] 伺服已运行（servo_state=3），无需重复上电\n";
-        } else {
-            std::cout << "  [信息] 伺服状态=" << servo_state << "，手动上电\n";
-            ret = set_servo_state(sock, 1);
-            if (ret != Result::SUCCESS && ret != Result::OPERATION_NOT_ALLOWED) {
-                std::cerr << "[ERROR] 设置伺服状态失败: " << ret << std::endl;
+        // 先获取当前模式
+        int current_mode = -1;
+        Result ret = get_current_mode(sock, current_mode);
+        if (ret != Result::SUCCESS || current_mode < 0) {
+            std::cerr << "[ERROR] 获取当前模式失败: " << ret << std::endl;
+            disconnect_robot(sock);
+            return -1;
+        }
+        std::cout << "  [信息] 当前模式: " << current_mode << " (0=示教 1=远程 2=运行)" << std::endl;
+
+        if (current_mode == 0) {
+            // 示教模式 → 先确保伺服就绪上电，再切换为运行模式
+            int servo_state = -1;
+            ret = get_servo_state(sock, servo_state);
+            if (ret != Result::SUCCESS) {
+                std::cerr << "[ERROR] 获取伺服状态失败: " << ret << std::endl;
                 disconnect_robot(sock);
                 return -1;
             }
-            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            std::cout << "  [信息] 伺服状态: " << servo_state << " (0=停止 1=就绪 2=报警 3=运行)" << std::endl;
+
+            if (servo_state != 3) {
+                // 伺服未运行 → 执行上电流程
+                std::cout << "  [信息] 伺服未运行，执行上电流程..." << std::endl;
+                ret = set_servo_state(sock, 1);
+                if (ret != Result::SUCCESS && ret != Result::OPERATION_NOT_ALLOWED) {
+                    std::cerr << "[ERROR] 设置伺服就绪失败: " << ret << std::endl;
+                    disconnect_robot(sock);
+                    return -1;
+                }
+                std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
             ret = set_servo_poweron(sock);
             if (ret != Result::SUCCESS) {
@@ -217,10 +229,41 @@ int main()
                 disconnect_robot(sock);
                 return -1;
             }
-            std::cout << "  [信息] 上电成功\n";
+            std::cout << "  [信息] 上电成功" << std::endl;
+            std::this_thread::sleep_for(std::chrono::seconds(2));
+            } else {
+                std::cout << "  [信息] 伺服已在运行状态" << std::endl;
+            }
+
+            // 切换为运行模式
+            std::cout << "  [信息] 切换为运行模式..." << std::endl;
+            ret = set_current_mode(sock, 2);
+            if (ret != Result::SUCCESS) {
+                std::cerr << "[ERROR] 切换运行模式失败: " << ret << std::endl;
+                disconnect_robot(sock);
+                return -1;
+            }
+            std::cout << "  [信息] 已切换为运行模式" << std::endl;
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+        } else if (current_mode == 2) {
+            // 已在运行模式，直接检查伺服状态
+            int servo_state = -1;
+            ret = get_servo_state(sock, servo_state);
+            if (ret != Result::SUCCESS || servo_state != 3) {
+                std::cerr << "[ERROR] 伺服未在运行状态 (servo_state=" << servo_state << ")" << std::endl;
+                disconnect_robot(sock);
+                return -1;
+            }
+            std::cout << "  [信息] 已在运行模式，伺服运行中 (servo_state=3)" << std::endl;
+        } else {
+            std::cerr << "[ERROR] 不支持的模式: " << current_mode << "，期望示教(0)或运行(2)模式" << std::endl;
+            disconnect_robot(sock);
+            return -1;
         }
     }
-    std::this_thread::sleep_for(std::chrono::seconds(1));
+
+    // 延时 2 秒，保证状态完全就绪
+    std::this_thread::sleep_for(std::chrono::seconds(2));
 
     // ---- 设置全局速度 ----
     // 控制器默认全局速度为 5%，设为 30% 提升运动效率
@@ -325,10 +368,14 @@ int main()
         return true;
     });
 
-    // ---- 断开连接（不下电，保持运行模式）----
-    print_separator("断开连接");
+    // ---- 切回示教模式并断开连接 ----
+    print_separator("切回示教模式 + 断开连接");
+    ret = set_current_mode(sock, 0);
+    print_result("set_current_mode(0) 切回示教模式", ret);
+    std::this_thread::sleep_for(std::chrono::milliseconds(300));
+
     disconnect_robot(sock);
-    std::cout << "[信息] 已断开连接，机械臂保持运行模式" << std::endl;
+    std::cout << "[信息] 已断开连接" << std::endl;
 
     std::cout << "\n[信息] 队列运动示例程序运行完毕" << std::endl;
     return 0;

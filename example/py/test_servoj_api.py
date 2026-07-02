@@ -66,21 +66,30 @@ def main():
     clear_error(sock)
     time.sleep(0.3)
 
-    # ---- 上电 ----
-    print_separator("上电")
-    # 注意: servo_state 为输出参数
-    servo_state = -1
-    _, servo_state = get_servo_state(sock, servo_state)
-    if servo_state != 3:
-        ret = set_servo_state(sock, 1)
-        print_result("set_servo_state(1)", ret)
-        time.sleep(0.5)
+    # ---- 下电复位 ----
+    set_servo_poweroff(sock)
+    time.sleep(0.3)
 
-        ret = set_servo_poweron(sock)
-        print_result("set_servo_poweron", ret)
-        time.sleep(1.0)
-    else:
-        print("  [信息] 伺服已运行 (servo_state=3)")
+    # ---- 切换示教模式并设置伺服就绪 ----
+    print_separator("切换示教模式")
+    ret = set_current_mode(sock, 0)
+    if ret != SUCCESS:
+        print(f"[ERROR] 切换示教模式失败: {ret}")
+        disconnect_robot(sock)
+        disconnect_robot(sock_servo)
+        return -1
+    print("  [信息] 已切换为示教模式")
+    time.sleep(0.3)
+
+    print("  [信息] 设置伺服就绪...")
+    ret = set_servo_state(sock, 1)
+    if ret != SUCCESS and ret != OPERATION_NOT_ALLOWED:
+        print(f"[ERROR] 设置伺服就绪失败: {ret}")
+        disconnect_robot(sock)
+        disconnect_robot(sock_servo)
+        return -1
+    print_result("set_servo_state(1)", ret)
+    time.sleep(0.5)
 
     # ---- 切换为运行模式 ----
     print_separator("切换运行模式")

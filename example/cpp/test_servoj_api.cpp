@@ -68,27 +68,34 @@ int main()
 
     Result ret;
 
-    // ---- 清错 ----
+    // ---- 清错与下电复位 ----
     clear_error(sock);
     std::this_thread::sleep_for(std::chrono::milliseconds(300));
+    set_servo_poweroff(sock);
+    std::this_thread::sleep_for(std::chrono::milliseconds(300));
 
-    // ---- 上电 ----
-    print_separator("上电");
-    {
-        int servo_state = -1;
-        get_servo_state(sock, servo_state);
-        if (servo_state != 3) {
-            ret = set_servo_state(sock, 1);
-            print_result("set_servo_state(1)", ret);
-            std::this_thread::sleep_for(std::chrono::milliseconds(500));
-
-            ret = set_servo_poweron(sock);
-            print_result("set_servo_poweron", ret);
-            std::this_thread::sleep_for(std::chrono::seconds(1));
-        } else {
-            std::cout << "  [信息] 伺服已运行 (servo_state=3)\n";
-        }
+    // ---- 切换示教模式并设置伺服就绪 ----
+    print_separator("切换示教模式");
+    ret = set_current_mode(sock, 0);
+    if (ret != Result::SUCCESS) {
+        std::cerr << "[ERROR] 切换示教模式失败: " << ret << std::endl;
+        disconnect_robot(sock);
+        disconnect_robot(sock_servo);
+        return -1;
     }
+    std::cout << "  [信息] 已切换为示教模式" << std::endl;
+    std::this_thread::sleep_for(std::chrono::milliseconds(300));
+
+    std::cout << "  [信息] 设置伺服就绪..." << std::endl;
+    ret = set_servo_state(sock, 1);
+    if (ret != Result::SUCCESS && ret != Result::OPERATION_NOT_ALLOWED) {
+        std::cerr << "[ERROR] 设置伺服就绪失败: " << ret << std::endl;
+        disconnect_robot(sock);
+        disconnect_robot(sock_servo);
+        return -1;
+    }
+    print_result("set_servo_state(1)", ret);
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
     // ---- 切换为运行模式 ----
     print_separator("切换运行模式");

@@ -3,3 +3,4 @@
 build
 .sisyphus
 __pycache__
+.cache

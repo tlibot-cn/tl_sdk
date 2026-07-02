@@ -98,27 +98,42 @@ int main()
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
     // ============================================================
-    // 3. 清错处理
+    // 3. 清错处理（在设置伺服状态前先清除控制器错误和报警）
     // ============================================================
-    // 如果伺服处于报警状态（state=2），需要先清错
+    print_separator("清错");
+    ret = clear_error(sock);
+    print_result("clear_error", ret);
+    std::this_thread::sleep_for(std::chrono::milliseconds(300));
+    ret = set_servo_poweroff(sock);
+    print_result("set_servo_poweroff", ret);
+    std::this_thread::sleep_for(std::chrono::milliseconds(300));
+
+    // 检查伺服状态
     {
         int state = -1;
-        get_servo_state(sock, state);
+        ret = get_servo_state(sock, state);
+        if (ret != Result::SUCCESS) {
+            std::cerr << "[ERROR] 获取伺服状态失败: " << ret << std::endl;
+            disconnect_robot(sock);
+            return -1;
+        }
+        std::cout << "  [信息] 当前伺服状态: " << servo_state_text(state) << std::endl;
+
         if (state == 2) {
-            print_separator("清错");
-            ret = clear_error(sock);
-            print_result("clear_error", ret);
-            std::this_thread::sleep_for(std::chrono::milliseconds(300));
+            // state=2 为报警状态，此时无法上电
+            std::cerr << "[ERROR] 伺服处于报警状态，无法继续上电，请排查报警原因后重试" << std::endl;
+            disconnect_robot(sock);
+            return -1;
         }
     }
 
     // ============================================================
-    // 3. 设置伺服就绪 → 上电 → 验证状态变化
+    // 4. 设置伺服就绪 → 上电 → 验证状态变化
     // ============================================================
     print_separator("伺服上电流程");
 
-    // 3a. 设置伺服就绪（state=1）
-    std::cout << "[步骤 3a] 设置伺服就绪 (set_servo_state=1)" << std::endl;
+    // 4a. 设置伺服就绪（state=1）
+    std::cout << "[步骤 4a] 设置伺服就绪 (set_servo_state=1)" << std::endl;
     ret = set_servo_state(sock, 1);
     if (ret == Result::OPERATION_NOT_ALLOWED) {
         std::cout << "  [信息] 机械臂已处于就绪或运行状态，无需设置" << std::endl;
@@ -138,15 +153,15 @@ int main()
         std::cout << "  [信息] 当前伺服状态: " << servo_state_text(state) << std::endl;
     }
 
-    // 3b. 上电使能（state=1 → state=3）
-    std::cout << "\n[步骤 3b] 上电使能 (set_servo_poweron)" << std::endl;
+    // 4b. 上电使能（state=1 → state=3）
+    std::cout << "\n[步骤 4b] 上电使能 (set_servo_poweron)" << std::endl;
     ret = set_servo_poweron(sock);
     print_result("set_servo_poweron", ret);
     if (ret != Result::SUCCESS) {
         disconnect_robot(sock);
         return -1;
     }
-    std::this_thread::sleep_for(std::chrono::seconds(1));
+    std::this_thread::sleep_for(std::chrono::seconds(2));
 
     // 验证上电成功后的状态应为 3=运行
     {

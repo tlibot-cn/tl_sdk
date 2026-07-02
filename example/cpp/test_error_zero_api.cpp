@@ -12,41 +12,64 @@
  */
 
 #include <iostream>
+#include <thread>
+#include <chrono>
 #include "cpp/interface/tl_api.h"
 
 void enable_servo(const int socket_fd)
 {
+  std::cout << "--- 检查伺服状态 ---" << std::endl;
+
+  // 1. 先清除控制器错误和报警，再下电复位确保状态同步
+  clear_error(socket_fd);
+  std::this_thread::sleep_for(std::chrono::milliseconds(300));
+  set_servo_poweroff(socket_fd);
+  std::this_thread::sleep_for(std::chrono::milliseconds(300));
+
+  // 2. 检查伺服状态
   int state = -1;
-  get_servo_state(socket_fd, state);
-  switch (state)
-  {
-    case 0:
-      set_servo_state(socket_fd, 1);
-      set_servo_poweron(socket_fd);
-      break;
-    case 1:
-      set_servo_poweron(socket_fd);
-      break;
-    case 2:
-      clear_error(socket_fd);
-      set_servo_state(socket_fd, 1);
-      set_servo_poweron(socket_fd);
-      break;
-    case 3:
-      std::cout << "[INFO] 机械臂已在使能上电状态" << std::endl;
-    default:
-      break;
+  auto ret = get_servo_state(socket_fd, state);
+  if (ret != Result::SUCCESS) {
+    std::cerr << "[ERROR] 获取伺服状态失败: " << ret << std::endl;
+    return;
+  }
+  std::cout << "  [信息] 当前伺服状态: " << state << " (0=停止 1=就绪 2=报警 3=运行)" << std::endl;
+
+  if (state == 2) {
+    std::cerr << "[ERROR] 伺服处于报警状态，无法上电，请排查报警原因后重试" << std::endl;
+    return;
   }
 
+  if (state == 3) {
+    std::cout << "[INFO] 机械臂已在使能上电状态" << std::endl;
+    return;
+  }
+
+  // 3. 上电流程
+  if (state == 0) {
+    std::cout << "  [信息] 伺服处于停止状态，设置就绪..." << std::endl;
+    ret = set_servo_state(socket_fd, 1);
+    if (ret != Result::SUCCESS && ret != Result::OPERATION_NOT_ALLOWED) {
+      std::cerr << "[ERROR] 设置伺服就绪失败: " << ret << std::endl;
+      return;
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+  }
+
+  std::cout << "  [信息] 上电使能..." << std::endl;
+  ret = set_servo_poweron(socket_fd);
+  if (ret != Result::SUCCESS) {
+    std::cerr << "[ERROR] 上电失败: " << ret << std::endl;
+    return;
+  }
+  std::this_thread::sleep_for(std::chrono::seconds(2));
+
+  // 4. 确认结果
   get_servo_state(socket_fd, state);
-  switch (state)
-  {
-    case 3:
-        std::cout << "[INFO] 机械臂使能上电成功（servo_state = " << state << "）" << std::endl;
-        break;
-    default:
-        std::cout << "[INFO] 机械臂使能上电失败（servo_state = " << state << "）" << std::endl;
-        break;
+  if (state == 3) {
+    std::cout << "[INFO] 机械臂使能上电成功（servo_state = " << state << "）" << std::endl;
+  } else {
+    std::cerr << "[ERROR] 机械臂使能上电失败（servo_state = " << state << "）" << std::endl;
   }
 }
 

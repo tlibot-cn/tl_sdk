@@ -72,16 +72,46 @@ if __name__ == "__main__":
     print("[信息] 双端口连接成功 (6001=" + str(sock) + ", 7000=" + str(sock_servo) + ")")
 
     # ---- 上电（servoJ 需要上电状态）----
+    print_separator("清错与上电")
+    clear_error(sock)
+    time.sleep(0.3)
+    set_servo_poweroff(sock)
+    time.sleep(0.3)
+
     servo_state = -1
-    _, servo_state = get_servo_state(sock, servo_state)
+    ret, servo_state = get_servo_state(sock, servo_state)
+    if ret != SUCCESS:
+        print(f"[ERROR] 获取伺服状态失败: {ret}")
+        disconnect_robot(sock)
+        disconnect_robot(sock_servo)
+        sys.exit(-1)
+    print(f"  [信息] 当前伺服状态: {servo_state} (0=停止 1=就绪 2=报警 3=运行)")
+
+    if servo_state == 2:
+        print("[ERROR] 伺服处于报警状态，无法上电")
+        disconnect_robot(sock)
+        disconnect_robot(sock_servo)
+        sys.exit(-1)
+
     if servo_state != 3:
-        print("[信息] 伺服状态=" + str(servo_state) + "，手动上电")
-        set_servo_state(sock, 1)
+        print("  [信息] 伺服未运行，执行上电流程...")
+        ret = set_servo_state(sock, 1)
+        if ret != SUCCESS and ret != OPERATION_NOT_ALLOWED:
+            print(f"[ERROR] 设置伺服就绪失败: {ret}")
+            disconnect_robot(sock)
+            disconnect_robot(sock_servo)
+            sys.exit(-1)
         time.sleep(0.5)
-        set_servo_poweron(sock)
-        time.sleep(1)
+        ret = set_servo_poweron(sock)
+        if ret != SUCCESS:
+            print(f"[ERROR] 上电失败: {ret}")
+            disconnect_robot(sock)
+            disconnect_robot(sock_servo)
+            sys.exit(-1)
+        time.sleep(2)
+        print("  [信息] 上电成功")
     else:
-        print("[信息] 伺服已运行 (servo_state=3)")
+        print("  [信息] 伺服已运行 (servo_state=3)")
 
     # ============================================================
     # 1. 四元数 ↔ 欧拉角 (RPY) — 正反验证
@@ -190,14 +220,21 @@ if __name__ == "__main__":
 
     # 从关节坐标系(0) 转换到直角坐标系(1)
     # 关节角度: J1=10°, J2=20°, J3=30°, J4=0°, J5=0°, J6=0°
-    joint_pos = [10, 20, 30, 0, 0, 0]
+    joint_pos = VectorDouble()
+    joint_pos.push_back(10.0)
+    joint_pos.push_back(20.0)
+    joint_pos.push_back(30.0)
+    joint_pos.push_back(0.0)
+    joint_pos.push_back(0.0)
+    joint_pos.push_back(0.0)
+    joint_pos.push_back(0.0)
     cartesian_pos = VectorDouble()
 
     # 注意: get_origin_coord_to_target_coord 在 SWIG 4.2.1 x86 绑定中存在 bool& 重载 bug，
     # 此处用 try/except 包装以避免运行时崩溃
     convert_state = False
     try:
-        ret = get_origin_coord_to_target_coord(sock, 0, joint_pos, 1, cartesian_pos, convert_state)
+        ret = get_origin_coord_to_target_coord(sock, 0, joint_pos, 1, cartesian_pos)
     except TypeError:
         ret = -5  # EXCEPTION
     print_result("get_origin_coord_to_target_coord (关节→直角) 正解", ret)
@@ -219,7 +256,7 @@ if __name__ == "__main__":
     if ret == SUCCESS and len(cartesian_pos) >= 6:
         joint_back = VectorDouble()
         try:
-            ret = get_origin_coord_to_target_coord(sock, 1, cartesian_pos, 0, joint_back, convert_state)
+            ret = get_origin_coord_to_target_coord(sock, 1, cartesian_pos, 0, joint_back)
         except TypeError:
             ret = -5  # EXCEPTION
         print_result("get_origin_coord_to_target_coord (直角→关节) 逆解", ret)
@@ -249,7 +286,7 @@ if __name__ == "__main__":
     # 注意: SWIG bool& 重载 bug，用 try/except 包装
     convert_state2 = False
     try:
-        ret = get_origin_coord_to_target_coord(sock, 1, target_pose, 0, target_joints, convert_state2)
+        ret = get_origin_coord_to_target_coord(sock, 1, target_pose, 0, target_joints)
     except TypeError:
         ret = -5  # EXCEPTION
     print_result("逆解: 直角→关节", ret)

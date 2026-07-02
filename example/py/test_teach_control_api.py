@@ -31,37 +31,53 @@ def print_separator(title):
 
 
 def enable_servo(socket_fd):
-    """使能上电 —— 根据当前伺服状态自动完成清错、就绪、上电操作"""
-    state = -1
-    _, state = get_servo_state(socket_fd, state)
-    if state == 0:
-        # 停止态：先就绪再上电
-        set_servo_state(socket_fd, 1)
-        time.sleep(0.5)
-        set_servo_poweron(socket_fd)
-        time.sleep(2)
-    elif state == 1:
-        # 就绪态：直接上电
-        set_servo_poweron(socket_fd)
-        time.sleep(2)
-    elif state == 2:
-        # 报警态：清错 → 就绪 → 上电
-        clear_error(socket_fd)
-        set_servo_state(socket_fd, 1)
-        time.sleep(0.5)
-        set_servo_poweron(socket_fd)
-        time.sleep(2)
-    elif state == 3:
-        print("[INFO] 机械臂已在使能上电状态")
-    else:
-        pass
+    """使能上电 —— 先清错，再检查伺服状态，报警则报错退出，最后上电"""
+    print("--- 检查伺服状态 ---")
 
-    # 确认上电结果
+    # 1. 先清除控制器错误和报警，再下电复位确保状态同步
+    ret = clear_error(socket_fd)
+    time.sleep(0.3)
+    set_servo_poweroff(socket_fd)
+    time.sleep(0.3)
+
+    # 2. 检查伺服状态
+    state = -1
+    ret, state = get_servo_state(socket_fd, state)
+    if ret != SUCCESS:
+        print(f"[ERROR] 获取伺服状态失败: {ret}")
+        return
+    print(f"  [信息] 当前伺服状态: {state} (0=停止 1=就绪 2=报警 3=运行)")
+
+    if state == 2:
+        print("[ERROR] 伺服处于报警状态，无法上电，请排查报警原因后重试")
+        return
+
+    if state == 3:
+        print("[INFO] 机械臂已在使能上电状态")
+        return
+
+    # 3. 上电流程
+    if state == 0:
+        print("  [信息] 伺服处于停止状态，设置就绪...")
+        ret = set_servo_state(socket_fd, 1)
+        if ret != SUCCESS and ret != OPERATION_NOT_ALLOWED:
+            print(f"[ERROR] 设置伺服就绪失败: {ret}")
+            return
+        time.sleep(0.5)
+
+    print("  [信息] 上电使能...")
+    ret = set_servo_poweron(socket_fd)
+    if ret != SUCCESS:
+        print(f"[ERROR] 上电失败: {ret}")
+        return
+    time.sleep(2)
+
+    # 4. 确认结果
     _, state = get_servo_state(socket_fd, state)
     if state == 3:
         print("[INFO] 机械臂使能上电成功（servo_state = " + str(state) + "）")
     else:
-        print("[INFO] 机械臂使能上电失败（servo_state = " + str(state) + "）")
+        print("[ERROR] 机械臂使能上电失败（servo_state = " + str(state) + "）")
 
 
 def disable_servo(socket_fd):

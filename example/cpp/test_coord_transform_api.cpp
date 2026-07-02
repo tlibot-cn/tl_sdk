@@ -94,16 +94,51 @@ int main()
 
     // ---- 上电（servoJ 需要上电状态）----
     {
+        print_separator("清错与上电");
+        clear_error(sock);
+        std::this_thread::sleep_for(std::chrono::milliseconds(300));
+        set_servo_poweroff(sock);
+        std::this_thread::sleep_for(std::chrono::milliseconds(300));
+
         int servo_state = -1;
-        get_servo_state(sock, servo_state);
+        ret = get_servo_state(sock, servo_state);
+        if (ret != Result::SUCCESS) {
+            std::cerr << "[ERROR] 获取伺服状态失败: " << ret << std::endl;
+            disconnect_robot(sock);
+            disconnect_robot(sock_servo);
+            return -1;
+        }
+        std::cout << "  [信息] 当前伺服状态: " << servo_state << " (0=停止 1=就绪 2=报警 3=运行)" << std::endl;
+
+        if (servo_state == 2) {
+            std::cerr << "[ERROR] 伺服处于报警状态，无法上电" << std::endl;
+            disconnect_robot(sock);
+            disconnect_robot(sock_servo);
+            return -1;
+        }
+
         if (servo_state != 3) {
-            std::cout << "[信息] 伺服状态=" << servo_state << "，手动上电\n";
-            set_servo_state(sock, 1);
+            std::cout << "  [信息] 伺服未运行，执行上电流程..." << std::endl;
+            ret = set_servo_state(sock, 1);
+            if (ret != Result::SUCCESS && ret != Result::OPERATION_NOT_ALLOWED) {
+                std::cerr << "[ERROR] 设置伺服就绪失败: " << ret << std::endl;
+                disconnect_robot(sock);
+                disconnect_robot(sock_servo);
+                return -1;
+            }
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
-            set_servo_poweron(sock);
-            std::this_thread::sleep_for(std::chrono::seconds(1));
+
+            ret = set_servo_poweron(sock);
+            if (ret != Result::SUCCESS) {
+                std::cerr << "[ERROR] 上电失败: " << ret << std::endl;
+                disconnect_robot(sock);
+                disconnect_robot(sock_servo);
+                return -1;
+            }
+            std::this_thread::sleep_for(std::chrono::seconds(2));
+            std::cout << "  [信息] 上电成功" << std::endl;
         } else {
-            std::cout << "[信息] 伺服已运行 (servo_state=3)\n";
+            std::cout << "  [信息] 伺服已运行 (servo_state=3)" << std::endl;
         }
     }
 

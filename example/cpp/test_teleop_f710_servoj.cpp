@@ -252,33 +252,29 @@ int main(int argc, char *argv[]) {
     std::cout << "  已连接到机械臂\n";
 
     // ---- 伺服状态检查与上电 ----
-    // 参考 test_servoj_api.cpp 的标准流程：
-    //   查状态 → 报警则清错下电 → 就绪 → 上电 → 切换运行模式
     std::cout << "\n--- 伺服状态检查与上电 ---\n";
+    clear_error(g_sock_tcp);
+    std::this_thread::sleep_for(std::chrono::milliseconds(300));
+    set_servo_poweroff(g_sock_tcp);
+    std::this_thread::sleep_for(std::chrono::milliseconds(300));
     {
         int servo_state = -1;
-        get_servo_state(g_sock_tcp, servo_state);
+        auto ret_local = get_servo_state(g_sock_tcp, servo_state);
+        if (ret_local != Result::SUCCESS) {
+            std::cerr << "[ERROR] 获取伺服状态失败: " << ret_local << std::endl;
+        }
         std::cout << "  当前伺服状态: " << servo_state
                   << " (0=停止 1=就绪 2=报警 3=运行)" << std::endl;
 
-        if (servo_state == 3) {
+        if (servo_state == 2) {
+            std::cerr << "[ERROR] 伺服处于报警状态，无法上电，请排查报警原因后重试" << std::endl;
+        } else if (servo_state == 3) {
             std::cout << "  [信息] 伺服已运行，跳过上电" << std::endl;
         } else {
-            if (servo_state == 2) {
-                // 报警状态：先清错，再下电（清错后必须下电再上电）
-                std::cout << "  [信息] 伺服报警，执行清错..." << std::endl;
-                clear_error(g_sock_tcp);
-                std::this_thread::sleep_for(std::chrono::milliseconds(300));
-                set_servo_poweroff(g_sock_tcp);
-                std::this_thread::sleep_for(std::chrono::milliseconds(300));
-            }
-
-            Result ret_local;
-
             // 确保伺服就绪
-            if (servo_state != 1) {
+            if (servo_state == 0) {
                 ret_local = set_servo_state(g_sock_tcp, 1);
-                if (ret_local != Result::SUCCESS) {
+                if (ret_local != Result::SUCCESS && ret_local != Result::OPERATION_NOT_ALLOWED) {
                     std::cerr << "[ERROR] set_servo_state(1) 失败，错误码: " << ret_local << std::endl;
                 }
                 std::this_thread::sleep_for(std::chrono::milliseconds(500));
@@ -288,8 +284,10 @@ int main(int argc, char *argv[]) {
             ret_local = set_servo_poweron(g_sock_tcp);
             if (ret_local != Result::SUCCESS) {
                 std::cerr << "[ERROR] set_servo_poweron 失败，错误码: " << ret_local << std::endl;
+            } else {
+                std::cout << "  [信息] 上电成功" << std::endl;
             }
-            std::this_thread::sleep_for(std::chrono::seconds(1));
+            std::this_thread::sleep_for(std::chrono::seconds(2));
         }
     }
 

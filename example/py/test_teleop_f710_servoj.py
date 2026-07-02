@@ -256,30 +256,35 @@ def main():
     try:
         # ---- 伺服状态检查与上电 ----
         print("\n--- 伺服状态检查与上电 ---")
+        clear_error(sock_tcp)
+        time.sleep(0.3)
+        set_servo_poweroff(sock_tcp)
+        time.sleep(0.3)
+
         # SWIG 将 int& 输出参数以额外返回值形式返回：[result, status]
         _ret, servo_state = get_servo_state(sock_tcp, -1)
+        if _ret != SUCCESS:
+            print(f"[ERROR] 获取伺服状态失败: {_ret}")
         print(f"  当前伺服状态: {servo_state} (0=停止 1=就绪 2=报警 3=运行)")
 
-        if servo_state == 3:
+        if servo_state == 2:
+            print("[ERROR] 伺服处于报警状态，无法上电，请排查报警原因后重试")
+        elif servo_state == 3:
             print("  [信息] 伺服已运行，跳过上电")
         else:
-            if servo_state == 2:
-                print("  [信息] 伺服报警，执行清错...")
-                clear_error(sock_tcp)
-                time.sleep(0.3)
-                set_servo_poweroff(sock_tcp)
-                time.sleep(0.3)
-
-            if servo_state != 1:
+            if servo_state == 0:
+                print("  [信息] 伺服处于停止状态，设置就绪...")
                 ret = set_servo_state(sock_tcp, 1)
-                if ret != SUCCESS:
+                if ret != SUCCESS and ret != OPERATION_NOT_ALLOWED:
                     print(f"[ERROR] set_servo_state(1) 失败，错误码: {ret}")
                 time.sleep(0.5)
 
             ret = set_servo_poweron(sock_tcp)
             if ret != SUCCESS:
                 print(f"[ERROR] set_servo_poweron 失败，错误码: {ret}")
-            time.sleep(1)
+            else:
+                print("  [信息] 上电成功")
+            time.sleep(2)
 
         # ---- 切换运行模式 & 设置速度 ----
         set_current_mode(sock_tcp, 2)
