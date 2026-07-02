@@ -309,14 +309,15 @@ if __name__ == "__main__":
         if ret == SUCCESS:
             # 逐步发送逆解出的关节角度，确保 servoJ 跟踪到位
             # 分 50 步从当前角度平滑过渡到目标角度
-            # q 必须为 7 元素，与 open_servoJ 一致
-            current = [0, 0, 0, 0, 0, 0]
+            # q 固定 7 元素，长度不够补 0（已在初始化时置零）
+            axis_count = len(target_joints)
+            current = [0.0] * axis_count
             steps = 50
             for i in range(steps):
                 q = [0.0] * 7
-                for j in range(6):
+                n = min(axis_count, len(q))
+                for j in range(n):
                     q[j] = current[j] + (target_joints[j] - current[j]) * (i + 1) / steps
-                q[6] = 0.0  # 外部轴置零
                 set_servoJ_pos(sock_servo, q)
                 time.sleep(0.01)
             # servoJ 是实时跟踪模式，等待固定时间确保运动到位

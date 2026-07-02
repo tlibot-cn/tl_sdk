@@ -343,7 +343,7 @@ int main()
             std::cout << "  [信息] 等待 servoJ 运动到位..." << std::endl;
             std::this_thread::sleep_for(std::chrono::seconds(5));
 
-            close_servoJ(sock_servo);
+            ret = close_servoJ(sock_servo);
             print_result("close_servoJ", ret);
         }
     }
