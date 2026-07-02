@@ -8,7 +8,8 @@
  *   - 默认控制器 IP 为 192.168.1.13，可根据实际环境修改
  *   - 运行模式: 透传模式（实时的将关节数据下发给控制器，控制器直接响应。连接7000端口后，并调用open_servoJ即可进入透传模式。在此之前建议set_current_mode(sock, 2)切换到运行模式）
  *   - 开始前需: 双端口连接(6001+7000) → 上电 → open_servoJ
- *   - 退出前需: close_servoJ → set_servo_poweroff → disconnect_robot(双端口)
+ *     （注意: servoJ 相关向量必须为 7 元素，传 6 元素会导致协议解析错乱断开连接）
+ *   - 退出前需: close_servoJ → set_current_mode(0) → disconnect_robot(双端口)
  * @note 运行步骤
  *       编译: cd build && cmake .. && make
  *       运行: ./test_servoj
@@ -101,17 +102,19 @@ int main()
     print_separator("切换运行模式");
     ret = set_current_mode(sock, 2);
     print_result("set_current_mode(2)", ret);
-    std::this_thread::sleep_for(std::chrono::milliseconds(300));
+    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
     // ============================================================
     // 打开 servoJ 模式
     // ============================================================
     print_separator("servoJ 关节实时跟踪");
 
-    // 速度/加速度/加加速度约束（6 轴，单位 °/s, °/s², °/s³）
-    std::vector<double> vmax = {30.0, 30.0, 30.0, 30.0, 30.0, 30.0};
-    std::vector<double> amax = {60.0, 60.0, 60.0, 60.0, 60.0, 60.0};
-    std::vector<double> jmax = {100.0, 100.0, 100.0, 100.0, 100.0, 100.0};
+    // 速度/加速度/加加速度约束（7 元素，单位 °/s, °/s², °/s³）
+    // 注意: SDK 底层协议要求 servoJ 相关向量固定为 7 元素，传 6 元素会导致
+    //       C++ vector marshaling 时长度不足，控制器协议解析错乱并断开 7000 连接
+    std::vector<double> vmax = {30.0, 30.0, 30.0, 30.0, 30.0, 30.0, 30.0};
+    std::vector<double> amax = {60.0, 60.0, 60.0, 60.0, 60.0, 60.0, 60.0};
+    std::vector<double> jmax = {100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0};
 
     ret = open_servoJ(sock_servo, vmax, amax, jmax);
     print_result("open_servoJ", ret);
@@ -125,7 +128,8 @@ int main()
     // ---- 动作 1: J1 从 0° 平滑转到 30° ----
     std::cout << "\n--- 动作 1: J1 转到 30° ---" << std::endl;
     {
-        std::vector<double> q = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+        // q 必须为 7 元素，与 open_servoJ 一致
+        std::vector<double> q = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
         for (int i = 0; i < 200; ++i) {
             q[0] += (30.0 / 200.0);       // 每次增加 0.15°
             set_servoJ_pos(sock_servo, q);
@@ -138,7 +142,8 @@ int main()
     // ---- 动作 2: J1 回到 0°，同时 J2 转到 20° ----
     std::cout << "\n--- 动作 2: J1 回零, J2 转到 20° ---" << std::endl;
     {
-        std::vector<double> q = {30.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+        // q 必须为 7 元素
+        std::vector<double> q = {30.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
         for (int i = 0; i < 200; ++i) {
             q[0] -= (30.0 / 200.0);       // J1 逐步回到 0°
             q[1] += (20.0 / 200.0);       // J2 逐步增加到 20°
@@ -152,7 +157,8 @@ int main()
     // ---- 动作 3: J1=0°, J2 回到 0°, J3 转到 15° ----
     std::cout << "\n--- 动作 3: J2 回零, J3 转到 15° ---" << std::endl;
     {
-        std::vector<double> q = {0.0, 20.0, 0.0, 0.0, 0.0, 0.0};
+        // q 必须为 7 元素
+        std::vector<double> q = {0.0, 20.0, 0.0, 0.0, 0.0, 0.0, 0.0};
         for (int i = 0; i < 200; ++i) {
             q[1] -= (20.0 / 200.0);       // J2 逐步回到 0°
             q[2] += (15.0 / 200.0);       // J3 逐步增加到 15°
@@ -166,7 +172,7 @@ int main()
     // ---- 动作 4: 所有轴回到零位 ----
     std::cout << "\n--- 动作 4: 所有轴回零 ---" << std::endl;
     {
-        std::vector<double> q = {0.0, 0.0, 15.0, 0.0, 0.0, 0.0};
+        std::vector<double> q = {0.0, 0.0, 15.0, 0.0, 0.0, 0.0, 0.0};
         for (int i = 0; i < 150; ++i) {
             q[2] -= (15.0 / 150.0);       // J3 逐步回到 0°
             set_servoJ_pos(sock_servo, q);
@@ -183,16 +189,13 @@ int main()
     std::cout << "\n  [信息] servoJ 运动全部完成" << std::endl;
 
     // ============================================================
-    // 下电 & 断开
+    // 切回示教模式（自动下电）& 断开
     // ============================================================
-    print_separator("下电");
+    print_separator("切回示教模式");
 
-    ret = set_servo_poweroff(sock);
-    if (ret == Result::SUCCESS || ret == Result::RECEIVE_FAILED) {
-        std::cout << "[信息] 下电成功" << std::endl;
-    } else {
-        print_result("set_servo_poweroff", ret);
-    }
+    ret = set_current_mode(sock, 0);
+    print_result("set_current_mode(0) 切回示教模式（自动下电）", ret);
+    std::this_thread::sleep_for(std::chrono::milliseconds(300));
 
     disconnect_robot(sock);
     disconnect_robot(sock_servo);

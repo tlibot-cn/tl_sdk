@@ -298,22 +298,25 @@ if __name__ == "__main__":
         # servoJ 需要连接 7000 端口，已在开头连接
         print("\n  --- 通过 servoJ 下发逆解结果 ---")
 
-        # servoJ 约束参数（6 轴）
-        vmax = [30.0, 30.0, 30.0, 30.0, 30.0, 30.0]
-        amax = [60.0, 60.0, 60.0, 60.0, 60.0, 60.0]
-        jmax = [100.0, 100.0, 100.0, 100.0, 100.0, 100.0]
+        # servoJ 约束参数（7 元素: 6 本体轴 + 1 外部轴）
+        # 注意: SDK 底层协议要求 servoJ 相关向量固定为 7 元素
+        vmax = [30.0, 30.0, 30.0, 30.0, 30.0, 30.0, 30.0]
+        amax = [60.0, 60.0, 60.0, 60.0, 60.0, 60.0, 60.0]
+        jmax = [100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0]
 
         ret = open_servoJ(sock_servo, vmax, amax, jmax)
         print_result("open_servoJ", ret)
         if ret == SUCCESS:
             # 逐步发送逆解出的关节角度，确保 servoJ 跟踪到位
             # 分 50 步从当前角度平滑过渡到目标角度
+            # q 必须为 7 元素，与 open_servoJ 一致
             current = [0, 0, 0, 0, 0, 0]
             steps = 50
             for i in range(steps):
-                q = []
+                q = [0.0] * 7
                 for j in range(6):
-                    q.append(current[j] + (target_joints[j] - current[j]) * (i + 1) / steps)
+                    q[j] = current[j] + (target_joints[j] - current[j]) * (i + 1) / steps
+                q[6] = 0.0  # 外部轴置零
                 set_servoJ_pos(sock_servo, q)
                 time.sleep(0.01)
             # servoJ 是实时跟踪模式，等待固定时间确保运动到位

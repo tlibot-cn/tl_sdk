@@ -10,6 +10,7 @@ test_teleop_f710_servoj.py
 @attention
    - 确保机械臂供电正常、网络通信正常
    - 【重要】运行前请先在下方"参数设定区"确认并修改 ROBOT_IP（控制器IP）和 NUM_JOINTS（轴数）
+   - 【重要】ServoJ API 固定需要 7 元素向量，6 轴机械臂时最后一个元素填 0.0。见下方 SERVO_AXIS 常量说明。
    - 需要双端口连接: 6001（控制）+ 7000（伺服高频透传）
    - 手柄需切到 DirectInput 模式，开关拨到 "D"
    - 运行前请先安装 pysdl2: pip install pysdl2
@@ -85,6 +86,11 @@ ROBOT_IP = "192.168.1.13"       # 控制器 IP 地址
 # ========== 轴数 ==========
 # 6 轴机械臂设为 6，7 轴设为 7
 NUM_JOINTS = 6
+
+# ========== ServoJ API 向量维度==========
+# 注意: SDK 底层协议要求 servoJ 相关向量固定为 7 元素，即使 6 轴机械臂也要传 7 个，
+#       最后一个元素（外部轴）填 0.0。传 6 元素会导致控制器协议解析错乱并断开连接。
+SERVO_AXIS = 7
 
 # ========== 零位关节角（度）==========
 HOME_JOINTS = [0.0] * NUM_JOINTS
@@ -292,9 +298,10 @@ def main():
 
         # ---- 开启 ServoJ ----
         print("\n--- 开启伺服跟踪模式 ---")
-        vmax_vec = VectorDouble([SERVO_VMAX] * NUM_JOINTS)
-        amax_vec = VectorDouble([SERVO_AMAX] * NUM_JOINTS)
-        jmax_vec = VectorDouble([SERVO_JMAX] * NUM_JOINTS)
+        # 注意: SDK 协议固定要求 7 元素，6 轴机械臂多余元素置 0
+        vmax_vec = VectorDouble([SERVO_VMAX] * SERVO_AXIS)
+        amax_vec = VectorDouble([SERVO_AMAX] * SERVO_AXIS)
+        jmax_vec = VectorDouble([SERVO_JMAX] * SERVO_AXIS)
         ret = open_servoJ(sock_udp, vmax_vec, amax_vec, jmax_vec)
         if ret != SUCCESS:
             print("open_servoJ 失败")
@@ -303,7 +310,8 @@ def main():
         # ---- 获取当前关节角，立即发送稳住 ----
         joint_cmd = VectorDouble([0.0] * NUM_JOINTS)
         get_current_position(sock_tcp, 0, joint_cmd)
-        set_servoJ_pos(sock_udp, joint_cmd)
+        # 补齐到 7 元素（6 轴机械臂外部轴置零）
+        set_servoJ_pos(sock_udp, list(joint_cmd) + [0.0])
         print("  初始关节角已锁定，等待手柄输入")
 
         # ---- 用实际关节角作为 IK 参考点 ----
@@ -434,8 +442,8 @@ def main():
             # ============================================================
             # 7. 发送 & IK 更新（先发送、后 IK）
             # ============================================================
-            # 7a. 立即发送上一帧的关节角（保持指令流不断）
-            set_servoJ_pos(sock_udp, joint_cmd)
+            # 7a. 立即发送上一帧的关节角（补齐到 7 元素）
+            set_servoJ_pos(sock_udp, list(joint_cmd) + [0.0])
 
             # 7b. 有摇杆输入或强制 IK（A 键归零）时才做 IK
             has_input = any(abs(v) > 1e-6 for v in cart_vel)

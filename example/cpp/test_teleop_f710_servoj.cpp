@@ -64,6 +64,11 @@ static const std::string ROBOT_IP = "192.168.1.13";
 /// 6 轴机械臂设为 6，7 轴设为 7
 static const int NUM_JOINTS = 6;
 
+/// ========== ServoJ API 向量维度 ==========
+/// 注意: SDK 底层协议要求 servoJ 相关向量固定为 7 元素，即使 6 轴机械臂也要传 7 个，
+///       最后一个元素（外部轴）填 0.0。传 6 元素会导致控制器协议解析错乱并断开连接。
+static const int SERVO_AXIS = 7;
+
 /// ========== 零位关节角 ==========
 /// [J1..JN]（度），N=NUM_JOINTS，程序启动时 FK 转为笛卡尔位姿
 static const std::vector<double> HOME_JOINTS(NUM_JOINTS, 0.0);
@@ -297,10 +302,11 @@ int main(int argc, char *argv[]) {
 
     // ---- 开启 ServoJ ----
     std::cout << "\n--- 开启伺服跟踪模式 ---\n";
-    // 速度/加速度/加加速度约束（NUM_JOINTS 轴，单位 °/s, °/s², °/s³）
-    std::vector<double> vmax_servo(NUM_JOINTS, SERVO_VMAX);
-    std::vector<double> amax_servo(NUM_JOINTS, SERVO_AMAX);
-    std::vector<double> jmax_servo(NUM_JOINTS, SERVO_JMAX);
+    // 速度/加速度/加加速度约束（SERVO_AXIS 元素，单位 °/s, °/s², °/s³）
+    // 注意: SDK 协议固定要求 7 元素，6 轴机械臂多余元素置 0
+    std::vector<double> vmax_servo(SERVO_AXIS, SERVO_VMAX);
+    std::vector<double> amax_servo(SERVO_AXIS, SERVO_AMAX);
+    std::vector<double> jmax_servo(SERVO_AXIS, SERVO_JMAX);
     Result ret = open_servoJ(g_sock_udp, vmax_servo, amax_servo, jmax_servo);
     if (ret != Result::SUCCESS) {
         std::cerr << "open_servoJ 失败\n";
@@ -314,7 +320,12 @@ int main(int argc, char *argv[]) {
     // ---- 获取当前关节角，立即发送稳住（避免 servoJ 空窗期）----
     std::vector<double> joint_cmd(NUM_JOINTS, 0.0);
     get_current_position(g_sock_tcp, 0, joint_cmd);
-    set_servoJ_pos(g_sock_udp, joint_cmd);
+    // 补齐到 7 元素（6 轴机械臂外部轴置零）
+    {
+        auto servo_cmd = joint_cmd;
+        servo_cmd.resize(SERVO_AXIS, 0.0);
+        set_servoJ_pos(g_sock_udp, servo_cmd);
+    }
     std::cout << "  初始关节角已锁定，等待手柄输入" << std::endl;
 
     // ---- 用实际关节角作为 IK 参考点（避免全零导致解跳变）----
@@ -474,8 +485,12 @@ int main(int argc, char *argv[]) {
         //   3) 无摇杆输入时跳过 IK（target_pose 未变，IK 结果相同），
         //      让循环维持在 250Hz，松手后立即停。
         //
-        // 7a. 立即发送上一帧的关节角（保持指令流不断）
-        set_servoJ_pos(g_sock_udp, joint_cmd);
+        // 7a. 立即发送上一帧的关节角（补齐到 7 元素，保持指令流不断）
+        {
+            auto servo_cmd = joint_cmd;
+            servo_cmd.resize(SERVO_AXIS, 0.0);
+            set_servoJ_pos(g_sock_udp, servo_cmd);
+        }
 
         // 7b. 有摇杆输入或强制 IK（A 键归零）时才做 IK
         bool has_input = false;

@@ -316,23 +316,26 @@ int main()
         // servoJ 需要连接 7000 端口，已在开头连接
         std::cout << "\n  --- 通过 servoJ 下发逆解结果 ---" << std::endl;
 
-        // servoJ 约束参数（6 轴）
-        std::vector<double> vmax = {30.0, 30.0, 30.0, 30.0, 30.0, 30.0};
-        std::vector<double> amax = {60.0, 60.0, 60.0, 60.0, 60.0, 60.0};
-        std::vector<double> jmax = {100.0, 100.0, 100.0, 100.0, 100.0, 100.0};
+        // servoJ 约束参数（7 元素: 6 本体轴 + 1 外部轴）
+        // 注意: SDK 底层协议要求 servoJ 相关向量固定为 7 元素
+        std::vector<double> vmax = {30.0, 30.0, 30.0, 30.0, 30.0, 30.0, 30.0};
+        std::vector<double> amax = {60.0, 60.0, 60.0, 60.0, 60.0, 60.0, 60.0};
+        std::vector<double> jmax = {100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0};
 
         ret = open_servoJ(sock_servo, vmax, amax, jmax);
         print_result("open_servoJ", ret);
         if (ret == Result::SUCCESS) {
             // 逐步发送逆解出的关节角度，确保 servoJ 跟踪到位
             // 分 50 步从当前角度平滑过渡到目标角度
-            std::vector<double> current = {0, 0, 0, 0, 0, 0};
+            // q 必须为 7 元素，与 open_servoJ 一致
+            std::vector<double> current = {0, 0, 0, 0, 0, 0, 0};
             int steps = 50;
             for (int i = 0; i < steps; ++i) {
-                std::vector<double> q(6);
+                std::vector<double> q(7);
                 for (int j = 0; j < 6; ++j) {
                     q[j] = current[j] + (target_joints[j] - current[j]) * (i + 1) / steps;
                 }
+                q[6] = 0.0;  // 外部轴置零
                 set_servoJ_pos(sock_servo, q);
                 std::this_thread::sleep_for(std::chrono::milliseconds(10));
             }
